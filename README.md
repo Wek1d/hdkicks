@@ -1,61 +1,61 @@
-# hdkicks ⚡
+# hdkicks
 
-> Kick profil görsellerini orijinal ve en yüksek çözünürlükte indirme aracı.
+Pulls a Kick channel's profile picture at the highest resolution Kick's public API actually has, and lets you preview or download it — nothing resized, nothing re-encoded.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![GitHub stars](https://img.shields.io/github/stars/Wek1d/hdkicks?style=flat)](https://github.com/Wek1d/hdkicks)
+Live at [wek1d.github.io/hdkicks](https://wek1d.github.io/hdkicks/).
 
----
+## What it does
 
-## 🚀 Özellikler
+Paste a Kick username or a `kick.com/...` link, hit Fetch, and it resolves the channel's avatar through Kick's public channel endpoint. Before showing anything, it tries a short list of likely "un-resized" versions of that image URL (stripped resize query params, `fullsize-`/`original-` path variants) and keeps the first one that actually loads. What you see and download is that file, not a scaled-down copy.
 
-- 🎯 **Orijinal Kalite:** Kick sunucularından doğrudan en yüksek çözünürlüklü görseli çeker.
-- ⚡ **Hızlı ve Sade:** İstemci taraflı çalışan, bağımlılıksız ve minimalist mimari.
-- 📱 **Mobil & iOS Uyumlu:** Dynamic Island / Çentik (Safe Area) desteği ve pürüzsüz dokunmatik deneyimi.
-- 🔍 **Çift Tıklama ile Yakınlaştırma:** Görsele tek veya çift tıklayarak 2.5x detaylı yakınlaştırma modu.
-- 🌓 **Karanlık / Aydınlık Tema:** Modern zinc/neutral renk paletine sahip tema desteği.
-- 🌐 **Çoklu Dil Desteği:** Türkçe ve İngilizce dil seçenekleri.
+Click the preview once to zoom in on the spot you clicked; double-click for a closer zoom. On a mouse, moving over a zoomed image pans it around like a loupe. Downloads are pulled as raw bytes rather than a canvas re-encode, so the saved file matches the source exactly — if a cross-origin fetch can't be forced into a download (some browsers won't respect the `download` attribute across origins), it opens the image in a new tab instead of yanking you off the page.
 
----
+The whole thing is one HTML file — no framework, no build step, no server component beyond GitHub Pages. It follows your system's light/dark preference and switches live if you change it, and it defaults to Turkish or English based on your browser language (with a manual switch if it guesses wrong).
 
-## 🛠️ Kullanım
+## Running it locally
 
-1. Arama kutusuna Kick kullanıcı adını (örneğin: `xqc`) veya kanal bağlantısını yapıştırın.
-2. **Çek** butonuna basın.
-3. Profil resminin çözünürlük, format ve dosya boyutu detaylarını görüntüleyin.
-4. Görsele tıklayarak yakınlaştırın veya doğrudan indirin.
+```bash
+git clone https://github.com/Wek1d/hdkicks.git
+cd hdkicks
+python3 -m http.server 8000
+```
 
----
+Or just open `index.html` directly in a browser.
 
-## 💻 Teknolojiler
+## Notes
 
-- **HTML5 & CSS3** (Custom Properties, Flexbox & CSS Grid)
-- **Vanilla JavaScript** (ES6+, Async/Await)
-- **Kick Public API**
+- This project reads only what Kick already exposes publicly on any channel page. It isn't affiliated with Kick in any way.
+- Because it depends on Kick's API shape and CDN URL conventions staying roughly the same, it may need small fixes if Kick changes either.
+- Licensed under MIT — see [`LICENSE`](LICENSE). © 2026 Arda Keçeci ([Wek1d](https://github.com/Wek1d)).
 
 ---
 
-## 📄 Lisans
+## Türkçe
 
-```text
-MIT License
+Bir Kick kanalının profil görselini, Kick'in genel API'sinin sunduğu en yüksek çözünürlükte çeker; önizleyebilir ya da indirebilirsiniz — ne yeniden boyutlandırma ne de yeniden kodlama yapılır.
 
-Copyright (a) 2026 Arda Keçeci (Wek1d)
+Canlı adres: [wek1d.github.io/hdkicks](https://wek1d.github.io/hdkicks/)
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+### Ne yapıyor
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+Bir Kick kullanıcı adı veya `kick.com/...` linki yapıştırıp Çek'e basınca, kanalın profil görselini Kick'in genel kanal uç noktası üzerinden çözer. Herhangi bir şey göstermeden önce, o görsel linkinin olası "ölçeklenmemiş" birkaç varyantını dener (boyutlandırma sorgu parametreleri atılmış, `fullsize-`/`original-` yol varyantları) ve gerçekten yüklenen ilkini kullanır. Gördüğünüz ve indirdiğiniz dosya, küçültülmüş bir kopya değil tam olarak budur.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+Önizlemeye bir kez tıklamak, tıkladığınız noktaya odaklanarak yakınlaştırır; çift tıklamak daha fazla yakınlaştırır. Fare kullanıyorsanız, yakınlaştırılmış görselin üzerinde gezinmek onu bir büyüteç gibi kaydırır. İndirmeler ham bayt olarak çekilir, canvas üzerinden yeniden kodlanmaz — bu yüzden kaydedilen dosya kaynağıyla birebir aynıdır. Farklı kaynaklı bir isteğin indirmeye zorlanamadığı durumlarda (bazı tarayıcılar `download` özniteliğine farklı kaynaklarda uymaz), sizi araçtan koparmak yerine görseli yeni bir sekmede açar.
+
+Tamamı tek bir HTML dosyası — framework yok, derleme adımı yok, GitHub Pages dışında bir sunucu bileşeni yok. Sisteminizin açık/koyu tema tercihini izler ve siz değiştirdiğinizde anlık günceller; tarayıcı dilinize göre varsayılan olarak Türkçe veya İngilizce açılır, yanlış tahmin ederse elle değiştirme seçeneği vardır.
+
+### Yerelde çalıştırma
+
+```bash
+git clone https://github.com/Wek1d/hdkicks.git
+cd hdkicks
+python3 -m http.server 8000
+```
+
+Ya da `index.html` dosyasını doğrudan tarayıcıda açabilirsiniz.
+
+### Notlar
+
+- Bu proje yalnızca Kick'in her kanal sayfasında zaten herkese açık olarak sunduğu veriyi okur. Kick ile hiçbir şekilde bağlantılı değildir.
+- Kick'in API yapısına ve CDN URL kurallarına bağlı olduğundan, Kick bunlardan birini değiştirirse küçük düzeltmelere ihtiyaç duyabilir.
+- MIT lisansı ile dağıtılmaktadır — ayrıntılar için [`LICENSE`](LICENSE) dosyasına bakın. © 2026 Arda Keçeci ([Wek1d](https://github.com/Wek1d)).
