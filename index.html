@@ -1,621 +1,532 @@
 <!DOCTYPE html>
 <html lang="tr" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>hdkicks — Kick profil görseli</title>
-    <meta name="description" content="Kick profil görselini en yüksek çözünürlükle indir.">
-    <link rel="canonical" href="https://wek1d.github.io/hdkicks/">
-    <meta property="og:title" content="hdkicks">
-    <meta property="og:description" content="Kick profil görselini en yüksek çözünürlükle çek.">
-    <meta property="og:url" content="https://wek1d.github.io/hdkicks/">
-    <meta property="og:type" content="website">
-    <meta name="theme-color" content="#0b0a09">
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23090909'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='16' font-weight='700' fill='%23c97a3d' text-anchor='middle'%3Ehd%3C/text%3E%3C/svg%3E">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
-    <style>
-        :root, [data-theme="dark"] {
-            --bg: #0a0b09;
-            --panel: #121412;
-            --line: #202220;
-            --line-2: #2b2e2a;
-            --text: #ececee;
-            --muted: #9fa39b;
-            --muted-2: #5c605a;
-            --accent: #53fc18;
-            --accent-text: #8ef25b;
-            --accent-soft: rgba(83, 252, 24, 0.12);
-            --accent-glow: rgba(83, 252, 24, 0.18);
-            --accent-ink: #0b1206;
-            --disabled-bg: #26281f;
-            --disabled-fg: #6b6f63;
-            --shadow: 0 4px 16px rgba(0,0,0,0.35);
-            --radius: 8px;
-            --grain-opacity: 0.045;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>hdkicks — Kick profil görseli</title>
+<meta name="description" content="Kick profil görselini ve banner'ını en yüksek çözünürlükle indir, PNG/JPEG/WebP'ye dönüştür.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://wek1d.github.io/hdkicks/">
 
-        [data-theme="light"] {
-            --bg: #f6f8f4;
-            --panel: #ffffff;
-            --line: #e2e6df;
-            --line-2: #cfd6c9;
-            --text: #171a15;
-            --muted: #62685d;
-            --muted-2: #99a08f;
-            --accent: #53fc18;
-            --accent-text: #2f7d0f;
-            --accent-soft: rgba(83, 252, 24, 0.15);
-            --accent-glow: rgba(83, 252, 24, 0.22);
-            --accent-ink: #0b1206;
-            --disabled-bg: #e7ebe1;
-            --disabled-fg: #a7ad9c;
-            --shadow: 0 4px 16px rgba(15,25,5,0.06);
-            --radius: 8px;
-            --grain-opacity: 0.025;
-        }
+<meta property="og:title" content="hdkicks — Kick profil görseli">
+<meta property="og:description" content="Kick profil görselini en yüksek çözünürlükle çek, dönüştür, indir.">
+<meta property="og:url" content="https://wek1d.github.io/hdkicks/">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://wek1d.github.io/hdkicks/icon.png">
+<meta property="og:image:alt" content="hdkicks">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://wek1d.github.io/hdkicks/icon.png">
 
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+<meta name="theme-color" content="#0a0b09" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f6f8f4" media="(prefers-color-scheme: light)">
 
-        html, body {
-            margin: 0;
-            background: var(--bg);
-            color: var(--text);
-            font-family: 'Inter', sans-serif;
-            font-size: 15px;
-            line-height: 1.5;
-            transition: background 0.25s ease, color 0.25s ease;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            scrollbar-color: var(--line-2) transparent;
-            scrollbar-width: thin;
-        }
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
 
-        ::-webkit-scrollbar { width: 10px; height: 10px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 20px; border: 2px solid var(--bg); }
-        ::-webkit-scrollbar-thumb:hover { background: var(--muted-2); }
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-        html { position: relative; }
-        html::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            pointer-events: none;
-            z-index: 0;
-            opacity: var(--grain-opacity);
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-            mix-blend-mode: overlay;
-        }
-        body {
-            position: relative;
-            z-index: 1;
-            padding: 56px 24px calc(40px + env(safe-area-inset-bottom, 0px));
-            padding-left: max(24px, env(safe-area-inset-left, 0px));
-            padding-right: max(24px, env(safe-area-inset-right, 0px));
-            display: flex;
-            justify-content: center;
-            min-height: 100vh;
-        }
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "hdkicks",
+  "url": "https://wek1d.github.io/hdkicks/",
+  "description": "Kick profil görselini ve banner'ını en yüksek çözünürlükte çeken, dönüştüren ve indiren ücretsiz araç.",
+  "applicationCategory": "MultimediaApplication",
+  "operatingSystem": "Any",
+  "browserRequirements": "Requires JavaScript",
+  "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+  "author": { "@type": "Person", "name": "Wek1d", "url": "https://github.com/Wek1d" }
+}
+</script>
 
-        .wrap { width: 100%; max-width: 600px; }
+<style>
+:root, [data-theme="dark"] {
+    --bg:#0a0b09; --panel:#121412; --panel-2:#0e0e10;
+    --line:#202220; --line-2:#2b2e2a;
+    --text:#ececee; --muted:#9fa39b; --muted-2:#5c605a;
+    --accent:#53fc18; --accent-text:#8ef25b;
+    --accent-soft:rgba(83,252,24,.12); --accent-glow:rgba(83,252,24,.18);
+    --accent-ink:#0b1206;
+    --disabled-bg:#26281f; --disabled-fg:#6b6f63;
+    --danger:#e06060; --danger-soft:rgba(224,96,96,.14);
+    --shadow:0 4px 16px rgba(0,0,0,.35);
+    --shadow-pop:0 10px 28px rgba(0,0,0,.45);
+    --radius:8px; --grain-opacity:.045;
+}
+[data-theme="light"] {
+    --bg:#f6f8f4; --panel:#ffffff; --panel-2:#f0f3eb;
+    --line:#e2e6df; --line-2:#cfd6c9;
+    --text:#171a15; --muted:#62685d; --muted-2:#99a08f;
+    --accent:#53fc18; --accent-text:#2f7d0f;
+    --accent-soft:rgba(83,252,24,.15); --accent-glow:rgba(83,252,24,.22);
+    --accent-ink:#0b1206;
+    --disabled-bg:#e7ebe1; --disabled-fg:#a7ad9c;
+    --danger:#c33a3a; --danger-soft:rgba(195,58,58,.10);
+    --shadow:0 4px 16px rgba(15,25,5,.06);
+    --shadow-pop:0 10px 28px rgba(15,25,5,.12);
+    --radius:8px; --grain-opacity:.025;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{
+    margin:0;background:var(--bg);color:var(--text);
+    font-family:'Inter',sans-serif;font-size:15px;line-height:1.5;
+    transition:background .25s ease,color .25s ease;
+    -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+    scrollbar-color:var(--line-2) transparent;scrollbar-width:thin;
+}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:20px;border:2px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:var(--muted-2)}
 
-        mono, .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.92em; }
+html{position:relative}
+html::before{
+    content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+    opacity:var(--grain-opacity);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    mix-blend-mode:overlay;
+}
+body{
+    position:relative;z-index:1;
+    padding:56px 24px calc(40px + env(safe-area-inset-bottom,0px));
+    padding-left:max(24px,env(safe-area-inset-left,0px));
+    padding-right:max(24px,env(safe-area-inset-right,0px));
+    display:flex;justify-content:center;min-height:100vh;
+}
+.wrap{width:100%;max-width:620px}
+mono,.mono{font-family:'JetBrains Mono',monospace;font-size:.92em}
 
-        /* header */
-        .topbar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            padding-bottom: 16px;
-            border-bottom: 1px solid var(--line);
-            margin-bottom: 32px;
-            flex-wrap: wrap;
-        }
+.topbar{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding-bottom:16px;border-bottom:1px solid var(--line);margin-bottom:32px;flex-wrap:wrap;
+}
+.logo{
+    font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:600;
+    color:var(--text);letter-spacing:-.02em;display:flex;align-items:center;gap:6px;position:relative;
+}
+.logo b{font-weight:800;color:var(--accent)}
+.logo::after{
+    content:'';position:absolute;left:0;right:-30px;bottom:-3px;height:1px;
+    background:var(--accent);opacity:.35;transform:rotate(-.6deg);
+}
+.topbar-controls{display:flex;align-items:center;gap:8px}
+.topbar a.gh{
+    font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted-2);
+    text-decoration:none;transition:color .2s,border-color .2s;border:1px solid var(--line);
+    padding:6px 10px;border-radius:6px;display:inline-flex;align-items:center;gap:5px;line-height:1;
+}
+.topbar a.gh:hover{color:var(--muted);border-color:var(--line-2)}
+.topbar a.gh svg{width:13px;height:13px;flex-shrink:0}
+.icon-btn{
+    width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;
+    background:transparent;border:1px solid var(--line);border-radius:7px;color:var(--muted);
+    cursor:pointer;transition:color .2s,border-color .2s,transform .15s;padding:0;
+}
+.icon-btn:hover{color:var(--text);border-color:var(--line-2)}
+.icon-btn:active{transform:scale(.92)}
+.icon-btn svg{width:15px;height:15px}
+.icon-btn .i-sun{display:none}
+[data-theme="light"] .icon-btn .i-moon{display:none}
+[data-theme="light"] .icon-btn .i-sun{display:block}
+.lang-pill{
+    display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;
+    font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;
+}
+.lang-pill button{
+    background:transparent;border:none;color:var(--muted-2);padding:7px 9px;
+    cursor:pointer;transition:color .2s,background .2s;line-height:1;
+}
+.lang-pill button:hover{color:var(--muted)}
+.lang-pill button.active{background:var(--accent-soft);color:var(--accent)}
+.lang-pill button+button{border-left:1px solid var(--line)}
 
-        .logo {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 17px;
-            font-weight: 600;
-            color: var(--text);
-            letter-spacing: -0.02em;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            position: relative;
-        }
-        .logo b { font-weight: 800; color: var(--accent); }
-        .logo::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            right: -30px;
-            bottom: -3px;
-            height: 1px;
-            background: var(--accent);
-            opacity: 0.35;
-            transform: rotate(-0.6deg);
-        }
+.kicker{
+    font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--accent);
+    display:inline-flex;align-items:center;gap:7px;margin:0 0 14px;
+}
+.kicker::before{content:'';width:6px;height:6px;border-radius:1px;background:var(--accent);transform:rotate(45deg);flex-shrink:0}
+h1{font-size:30px;line-height:1.25;font-weight:800;letter-spacing:-.02em;margin:0 0 10px;max-width:520px;color:var(--text)}
+h1 .hl{position:relative;white-space:nowrap}
+h1 .hl::after{
+    content:'';position:absolute;left:-2px;right:-2px;bottom:2px;height:7px;
+    background:var(--accent-soft);z-index:-1;transform:rotate(-.8deg);
+}
+p.lede{font-size:15px;color:var(--muted);max-width:480px;margin:0 0 30px}
 
-        .topbar-controls {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
+form{display:flex;gap:10px;margin-bottom:8px}
+.cmd{
+    flex:1;display:flex;align-items:center;gap:10px;background:var(--bg);
+    border:1px solid var(--line);border-radius:var(--radius);padding:0 14px;
+    transition:border-color .2s,box-shadow .2s;
+}
+[data-theme="dark"] .cmd{background:var(--panel-2)}
+.cmd:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.cmd .prompt{font-family:'JetBrains Mono',monospace;color:var(--muted-2);font-size:13px;user-select:none;font-weight:500}
+input[type="text"]{
+    flex:1;background:transparent;border:none;outline:none;color:var(--text);
+    font-family:'JetBrains Mono',monospace;font-size:13px;padding:13px 0;min-width:0;
+}
+input::placeholder{color:var(--muted-2)}
+button.go{
+    background:var(--accent);color:var(--accent-ink);border:none;border-radius:var(--radius);
+    font-weight:700;font-size:14px;padding:0 22px;cursor:pointer;
+    transition:filter .15s,opacity .15s;white-space:nowrap;font-family:inherit;
+}
+button.go:hover{filter:brightness(1.1)}
+button.go:active{filter:brightness(.95)}
+button.go:disabled{background:var(--disabled-bg);color:var(--disabled-fg);cursor:default;filter:none}
 
-        .topbar a.gh {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
-            color: var(--muted-2);
-            text-decoration: none;
-            transition: color 0.2s, border-color 0.2s;
-            border: 1px solid var(--line);
-            padding: 6px 10px;
-            border-radius: 6px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            line-height: 1;
-        }
-        .topbar a.gh:hover { color: var(--muted); border-color: var(--line-2); }
-        .topbar a.gh svg { width: 13px; height: 13px; flex-shrink: 0; }
+.hint{font-size:12px;color:var(--muted-2);margin:0 0 8px}
+.hint mono{color:var(--muted)}
 
-        .icon-btn {
-            width: 30px;
-            height: 30px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: transparent;
-            border: 1px solid var(--line);
-            border-radius: 7px;
-            color: var(--muted);
-            cursor: pointer;
-            transition: color 0.2s, border-color 0.2s, transform 0.15s;
-            padding: 0;
-        }
-        .icon-btn:hover { color: var(--text); border-color: var(--line-2); }
-        .icon-btn:active { transform: scale(0.92); }
-        .icon-btn svg { width: 15px; height: 15px; }
-        .icon-btn .i-sun { display: none; }
-        [data-theme="light"] .icon-btn .i-moon { display: none; }
-        [data-theme="light"] .icon-btn .i-sun { display: block; }
+.history{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 4px;font-size:12px}
+.history[hidden]{display:none}
+.history-label{font-family:'JetBrains Mono',monospace;color:var(--muted-2);font-size:11px;letter-spacing:.05em;text-transform:uppercase}
+.history-list{display:flex;gap:6px;flex-wrap:wrap}
+.history-chip{
+    background:transparent;border:1px solid var(--line);border-radius:6px;
+    color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:11px;
+    padding:4px 8px;cursor:pointer;transition:color .2s,border-color .2s,background .2s;line-height:1;
+}
+.history-chip:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
+.history-clear{
+    background:transparent;border:none;color:var(--muted-2);font-family:'JetBrains Mono',monospace;
+    font-size:11px;cursor:pointer;padding:4px 6px;text-decoration:underline;text-underline-offset:2px;
+}
+.history-clear:hover{color:var(--danger)}
 
-        .lang-pill {
-            display: inline-flex;
-            border: 1px solid var(--line);
-            border-radius: 7px;
-            overflow: hidden;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            font-weight: 600;
-        }
-        .lang-pill button {
-            background: transparent;
-            border: none;
-            color: var(--muted-2);
-            padding: 7px 9px;
-            cursor: pointer;
-            transition: color 0.2s, background 0.2s;
-            line-height: 1;
-        }
-        .lang-pill button:hover { color: var(--muted); }
-        .lang-pill button.active {
-            background: var(--accent-soft);
-            color: var(--accent);
-        }
-        .lang-pill button + button { border-left: 1px solid var(--line); }
+.stage{display:none;min-height:100px}
+.stage.shown{display:block;border-top:1px solid var(--line);margin-top:28px;padding-top:24px;animation:fadeUp .35s ease}
+.state{display:none}
+.state.active{display:block;animation:fadeUp .3s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
-        .kicker {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: var(--accent);
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            margin: 0 0 14px;
-        }
-        .kicker::before {
-            content: '';
-            width: 6px;
-            height: 6px;
-            border-radius: 1px;
-            background: var(--accent);
-            transform: rotate(45deg);
-            flex-shrink: 0;
-        }
+.state-loading p{
+    font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--muted);
+    margin:0;display:flex;align-items:center;gap:10px;
+}
+.spinner{width:14px;height:14px;border:2px solid var(--line-2);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-        h1 {
-            font-size: 30px;
-            line-height: 1.25;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            margin: 0 0 10px;
-            max-width: 520px;
-            color: var(--text);
-        }
-        h1 .hl {
-            position: relative;
-            white-space: nowrap;
-        }
-        h1 .hl::after {
-            content: '';
-            position: absolute;
-            left: -2px;
-            right: -2px;
-            bottom: 2px;
-            height: 7px;
-            background: var(--accent-soft);
-            z-index: -1;
-            transform: rotate(-0.8deg);
-        }
+.state-error p.title{font-size:15px;font-weight:700;margin:0 0 5px;color:var(--text)}
+.state-error p.detail{font-size:13px;color:var(--muted);margin:0 0 14px}
 
-        p.lede {
-            font-size: 15px;
-            color: var(--muted);
-            max-width: 480px;
-            margin: 0 0 30px;
-        }
+.state-result{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:22px;box-shadow:var(--shadow);
+}
 
-        /* form */
-        form {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 8px;
-        }
+/* ============================================================
+   TABS — lang-pill ile aynı dil, aktif olan solid accent
+   ============================================================ */
+.tabs{
+    display:inline-flex;
+    align-items:stretch;
+    border:1px solid var(--line-2);
+    border-radius:7px;
+    overflow:hidden;
+    margin:0 0 20px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    font-weight:700;
+    background:transparent;
+    line-height:1;
+}
+.tabs[hidden]{display:none}
+.tabs .tab{
+    background:transparent;
+    border:none;
+    color:var(--muted-2);
+    padding:9px 20px;
+    cursor:pointer;
+    transition:color .15s ease, background .15s ease;
+    line-height:1;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    font:inherit;
+    font-weight:700;
+}
+.tabs .tab:hover{color:var(--text);background:var(--panel-2)}
+.tabs .tab.active{
+    background:var(--accent);
+    color:var(--accent-ink);
+    font-weight:800;
+}
+.tabs .tab.active:hover{color:var(--accent-ink);background:var(--accent);filter:brightness(1.05)}
+.tabs .tab + .tab{border-left:1px solid var(--line-2)}
 
-        .cmd {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: var(--bg);
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            padding: 0 14px;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        [data-theme="dark"] .cmd { background: #0e0e10; }
-        .cmd:focus-within {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px var(--accent-soft);
-        }
+.result-body{display:flex;gap:22px;align-items:flex-start}
 
-        .cmd .prompt {
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--muted-2);
-            font-size: 13px;
-            user-select: none;
-            font-weight: 500;
-        }
+.preview-frame{
+    width:170px;height:170px;flex-shrink:0;border-radius:12px;overflow:hidden;
+    border:2px solid var(--line-2);background:var(--bg);position:relative;
+    cursor:zoom-in;transition:border-color .2s,transform .2s,box-shadow .2s;
+}
+.preview-frame:hover{
+    border-color:var(--accent);
+    transform:translateY(-2px);
+    box-shadow:0 8px 22px var(--accent-soft);
+}
+.preview-frame img{
+    width:100%;height:100%;object-fit:cover;display:block;
+    opacity:0;transition:opacity .4s;
+    image-rendering:-webkit-optimize-contrast;
+    image-rendering:crisp-edges;
+}
+.preview-frame img.loaded{opacity:1}
+.preview-frame::before{
+    content:'';position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);
+    animation:shimmer 1.4s infinite;
+}
+.preview-frame.loaded::before{display:none}
+@keyframes shimmer{0%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+.zoom-tag{
+    position:absolute;bottom:8px;right:8px;font-family:'JetBrains Mono',monospace;font-size:10px;
+    letter-spacing:.03em;background:rgba(0,0,0,.6);color:#fff;padding:4px 7px;border-radius:5px;
+    opacity:0;transition:opacity .3s;pointer-events:none;
+}
+.preview-frame.loaded .zoom-tag{opacity:1}
 
-        input[type="text"] {
-            flex: 1;
-            background: transparent;
-            border: none;
-            outline: none;
-            color: var(--text);
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 13px;
-            padding: 13px 0;
-            min-width: 0;
-        }
-        input::placeholder { color: var(--muted-2); }
+.result-meta{flex:1;min-width:0}
+.result-meta .handle{font-size:19px;font-weight:700;margin:0 0 8px;color:var(--text);word-break:break-all}
+.result-meta .specs{
+    font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);
+    margin:0 0 18px;display:flex;flex-wrap:wrap;align-items:center;
+}
+.specs .sep{color:var(--muted-2);margin:0 7px}
+.specs .badge{
+    background:var(--accent-soft);color:var(--accent);padding:3px 8px;border-radius:5px;
+    font-size:10px;letter-spacing:.04em;font-weight:700;text-transform:uppercase;
+}
+.specs .badge.muted{background:transparent;color:var(--muted-2);border:1px solid var(--line)}
 
-        button.go {
-            background: var(--accent);
-            color: var(--accent-ink);
-            border: none;
-            border-radius: var(--radius);
-            font-weight: 700;
-            font-size: 14px;
-            padding: 0 22px;
-            cursor: pointer;
-            transition: filter 0.15s, opacity 0.15s;
-            white-space: nowrap;
-        }
-        button.go:hover { filter: brightness(1.1); }
-        button.go:active { filter: brightness(0.95); }
-        button.go:disabled { background: var(--disabled-bg); color: var(--disabled-fg); cursor: default; filter: none; }
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
-        .hint {
-            font-size: 12px;
-            color: var(--muted-2);
-            margin: 0 0 8px;
-        }
-        .hint mono { color: var(--muted); }
+.dl-group{
+    position:relative;
+    display:inline-flex;align-items:stretch;
+    border-radius:10px;
+    background:var(--accent);
+    box-shadow:0 3px 12px var(--accent-soft);
+    overflow:visible;
+}
+button.download-btn{
+    background:transparent;color:var(--accent-ink);border:none;font-weight:800;
+    font-size:13px;padding:11px 22px;cursor:pointer;transition:filter .15s;
+    font-family:inherit;letter-spacing:.02em;
+    border-radius:10px 0 0 10px;
+}
+button.download-btn:hover{filter:brightness(1.08)}
+button.download-btn:disabled{opacity:.7;cursor:wait;filter:none}
 
-        /* stage */
-        .stage {
-            display: none;
-            min-height: 100px;
-        }
-        .stage.shown {
-            display: block;
-            border-top: 1px solid var(--line);
-            margin-top: 28px;
-            padding-top: 24px;
-            animation: fadeUp 0.35s ease;
-        }
+.format-dropdown{
+    position:relative;
+    display:flex;
+    border-left:1px solid rgba(0,0,0,.16);
+}
+.format-trigger{
+    background:transparent;
+    color:var(--accent-ink);
+    border:none;
+    padding:0 14px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:.06em;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    transition:filter .15s;
+    border-radius:0 10px 10px 0;
+    line-height:1;
+}
+.format-trigger:hover{filter:brightness(1.08)}
+.format-caret{
+    width:9px;height:9px;
+    transition:transform .2s ease;
+    flex-shrink:0;
+}
+.format-trigger[aria-expanded="true"] .format-caret{transform:rotate(180deg)}
 
-        .state { display: none; }
-        .state.active { display: block; animation: fadeUp 0.3s ease; }
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+.format-menu{
+    position:absolute;
+    top:calc(100% + 8px);
+    right:0;
+    min-width:140px;
+    background:var(--panel);
+    border:1px solid var(--line-2);
+    border-radius:11px;
+    box-shadow:var(--shadow-pop);
+    padding:5px;
+    margin:0;
+    list-style:none;
+    opacity:0;
+    transform:translateY(-6px) scale(.96);
+    transform-origin:top right;
+    pointer-events:none;
+    transition:opacity .18s ease, transform .18s ease;
+    z-index:60;
+}
+.format-menu.open{
+    opacity:1;
+    transform:translateY(0) scale(1);
+    pointer-events:auto;
+}
+.format-menu li{
+    padding:8px 12px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    font-weight:700;
+    color:var(--muted);
+    border-radius:7px;
+    cursor:pointer;
+    transition:background .12s, color .12s;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    user-select:none;
+}
+.format-menu li:hover{
+    background:var(--accent-soft);
+    color:var(--accent);
+}
+.format-menu li.selected{
+    background:var(--accent-soft);
+    color:var(--accent);
+}
+.format-menu li.selected::after{
+    content:'';
+    width:6px;height:6px;border-radius:50%;
+    background:var(--accent);
+    flex-shrink:0;
+}
 
-        .state-loading p {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 13px;
-            color: var(--muted);
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .spinner {
-            width: 14px;
-            height: 14px;
-            border: 2px solid var(--line-2);
-            border-top-color: var(--accent);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
+button.open-btn{
+    background:transparent;border:1px solid var(--line-2);color:var(--muted);font-size:12px;
+    font-weight:600;padding:11px 14px;border-radius:10px;cursor:pointer;
+    transition:border-color .2s,color .2s,background .2s;font-family:inherit;line-height:1;
+    white-space:nowrap;
+}
+button.open-btn:hover{border-color:var(--accent);color:var(--text);background:var(--accent-soft)}
 
-        .state-error p.title {
-            font-size: 15px;
-            font-weight: 700;
-            margin: 0 0 5px;
-            color: var(--text);
-        }
-        .state-error p.detail {
-            font-size: 13px;
-            color: var(--muted);
-            margin: 0;
-        }
+.lightbox{
+    position:fixed;inset:0;z-index:999;display:flex;align-items:center;justify-content:center;
+    background:rgba(5,5,6,0);backdrop-filter:blur(0px);-webkit-backdrop-filter:blur(0px);
+    cursor:zoom-out;transition:background .3s,backdrop-filter .3s,-webkit-backdrop-filter .3s;
+    touch-action:pan-x pan-y;
+}
+.lightbox.open{background:rgba(5,5,6,.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+[data-theme="light"] .lightbox.open{background:rgba(20,20,15,.78)}
+.lightbox .lb-close{
+    position:absolute;top:20px;right:24px;background:transparent;border:none;color:#d6d6da;
+    font-size:28px;cursor:pointer;line-height:1;z-index:10;touch-action:manipulation;
+}
+.lightbox .lb-close:hover{color:#fff}
+.lightbox .lb-stage{
+    position:relative;max-width:90vw;max-height:90vh;
+    display:flex;align-items:center;justify-content:center;overflow:hidden;
+}
+.lightbox img{
+    max-width:90vw;max-height:90vh;object-fit:contain;border-radius:8px;
+    opacity:0;transform:scale(.96);transition:opacity .3s,transform .3s;
+    cursor:zoom-in;touch-action:manipulation;user-select:none;-webkit-user-select:none;
+}
+.lightbox.open img{opacity:1}
+.lightbox.open img:not(.zoomed){transform:scale(1)}
+.lightbox img.zoomed{cursor:zoom-out;transition:opacity .3s,transform .06s linear}
+.lightbox .lb-tag,.lightbox .lb-hint{
+    position:absolute;bottom:12px;font-family:'JetBrains Mono',monospace;font-size:10px;
+    pointer-events:none;opacity:0;transition:opacity .3s;z-index:5;
+}
+.lightbox .lb-tag{
+    left:12px;letter-spacing:.03em;color:rgba(255,255,255,.75);
+    background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.14);
+    padding:4px 8px;border-radius:5px;
+}
+.lightbox .lb-hint{right:12px;color:rgba(255,255,255,.55)}
+.lightbox.open .lb-tag,.lightbox.open .lb-hint{opacity:1}
 
-        /* result card */
-        .state-result {
-            background: var(--panel);
-            border: 1px solid var(--line);
-            border-radius: var(--radius);
-            padding: 20px;
-            display: flex;
-            gap: 20px;
-            align-items: flex-start;
-            box-shadow: var(--shadow);
-        }
+.qr-modal{
+    position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,.6);opacity:0;pointer-events:none;transition:opacity .25s;
+    padding:20px;
+}
+.qr-modal.open{opacity:1;pointer-events:auto}
+.qr-modal[hidden]{display:none}
+.qr-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;
+    padding:24px;max-width:340px;width:100%;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;gap:16px;align-items:center;text-align:center;
+    transform:translateY(8px) scale(.97);transition:transform .25s;
+}
+.qr-modal.open .qr-card{transform:none}
+.qr-card img{width:240px;height:240px;background:#fff;border-radius:12px;display:block;padding:8px}
+.qr-card .qr-title{
+    font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);margin:0;
+    letter-spacing:.06em;text-transform:uppercase;font-weight:700;
+}
+.qr-card .qr-url{
+    font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);word-break:break-all;
+    background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;width:100%;
+    cursor:pointer;transition:border-color .2s;
+}
+.qr-card .qr-url:hover{border-color:var(--accent)}
 
-        .avatar-frame {
-            width: 120px;
-            height: 120px;
-            flex-shrink: 0;
-            border-radius: var(--radius);
-            overflow: hidden;
-            border: 2px solid var(--line-2);
-            background: var(--bg);
-            position: relative;
-            cursor: zoom-in;
-            transition: border-color 0.2s;
-        }
-        .avatar-frame:hover { border-color: var(--accent); }
-        .avatar-frame img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-            opacity: 0;
-            transition: opacity 0.4s;
-        }
-        .avatar-frame img.loaded { opacity: 1; }
+.toast-root{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:1100;
+    display:flex;flex-direction:column-reverse;gap:8px;pointer-events:none;
+    padding:0 16px;max-width:100%;align-items:center;
+}
+.toast{
+    background:var(--panel);border:1px solid var(--line-2);color:var(--text);
+    font-family:'JetBrains Mono',monospace;font-size:12px;padding:11px 16px;
+    border-radius:10px;box-shadow:var(--shadow-pop);opacity:0;transform:translateY(8px);
+    transition:opacity .2s,transform .2s;pointer-events:auto;max-width:min(420px,90vw);
+    font-weight:600;
+}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.error{border-color:var(--danger);color:var(--danger)}
 
-        .avatar-frame::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
-            animation: shimmer 1.4s infinite;
-            pointer-events: none;
-        }
-        .avatar-frame img.loaded ~ .zoom-tag { opacity: 1; }
-        .zoom-tag {
-            position: absolute;
-            bottom: 6px;
-            right: 6px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 9px;
-            letter-spacing: 0.03em;
-            background: rgba(0,0,0,0.55);
-            color: #fff;
-            padding: 3px 6px;
-            border-radius: 4px;
-            opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
-        }
-        @keyframes shimmer {
-            0% { transform: translateX(-100%); }
-            100% { transform: translateX(100%); }
-        }
+@media (max-width:520px){
+    body{padding:32px 14px 28px;padding-bottom:calc(28px + env(safe-area-inset-bottom,0px))}
+    h1{font-size:24px}
+    form{flex-direction:column}
+    input[type="text"]{font-size:16px}
+    button.go{padding:13px 0}
+    .result-body{flex-direction:column}
+    .preview-frame{width:100%;height:240px}
+    .topbar{gap:10px}
+    .topbar a.gh span{display:none}
+    .topbar a.gh{padding:6px 8px}
+    .actions{gap:6px}
+    button.open-btn{flex:1 1 calc(50% - 3px);padding:12px 10px;font-size:12px;text-align:center}
+    .dl-group{width:100%}
+    button.download-btn{flex:1;padding:13px 16px}
+    .format-trigger{padding:0 12px;font-size:10px}
+    .tabs{width:100%}
+    .tabs .tab{flex:1;text-align:center;padding:10px 8px;font-size:11px}
+    .qr-card img{width:200px;height:200px}
+}
 
-        .result-meta { flex: 1; min-width: 0; }
-
-        .result-meta .handle {
-            font-size: 18px;
-            font-weight: 700;
-            margin: 0 0 6px;
-            color: var(--text);
-        }
-
-        .result-meta .specs {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
-            color: var(--muted);
-            margin: 0 0 18px;
-        }
-        .specs .sep { color: var(--muted-2); margin: 0 5px; }
-
-        .actions { display: flex; gap: 10px; flex-wrap: wrap; }
-
-        a.download-btn {
-            background: var(--accent);
-            color: var(--accent-ink);
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 13px;
-            padding: 10px 18px;
-            border-radius: var(--radius);
-            transition: filter 0.15s;
-        }
-        a.download-btn:hover { filter: brightness(1.1); }
-
-        button.open-btn {
-            background: transparent;
-            border: 1px solid var(--line-2);
-            color: var(--muted);
-            font-size: 13px;
-            font-weight: 500;
-            padding: 10px 16px;
-            border-radius: var(--radius);
-            cursor: pointer;
-            transition: border-color 0.2s, color 0.2s;
-        }
-        button.open-btn:hover { border-color: var(--accent); color: var(--text); }
-
-        /* lightbox */
-        .lightbox {
-            position: fixed;
-            inset: 0;
-            z-index: 999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(5,5,6,0);
-            -webkit-backdrop-filter: blur(0px);
-            backdrop-filter: blur(0px);
-            cursor: zoom-out;
-            transition: background 0.3s, backdrop-filter 0.3s, -webkit-backdrop-filter 0.3s;
-            touch-action: pan-x pan-y;
-        }
-        .lightbox.open {
-            background: rgba(5,5,6,0.85);
-            -webkit-backdrop-filter: blur(8px);
-            backdrop-filter: blur(8px);
-        }
-        [data-theme="light"] .lightbox.open { background: rgba(20,20,15,0.75); }
-        .lightbox .lb-close {
-            position: absolute;
-            top: 20px;
-            right: 24px;
-            background: transparent;
-            border: none;
-            color: #d6d6da;
-            font-size: 28px;
-            cursor: pointer;
-            line-height: 1;
-            transition: color 0.2s;
-            z-index: 10;
-            touch-action: manipulation;
-        }
-        .lightbox .lb-close:hover { color: #fff; }
-        .lightbox .lb-stage {
-            position: relative;
-            max-width: 90vw;
-            max-height: 90vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-        }
-        .lightbox img {
-            max-width: 90vw;
-            max-height: 90vh;
-            object-fit: contain;
-            border-radius: 8px;
-            opacity: 0;
-            transform: scale(0.96);
-            transition: opacity 0.3s, transform 0.3s;
-            image-rendering: auto;
-            cursor: zoom-in;
-            touch-action: manipulation;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-        .lightbox.open img { opacity: 1; }
-        .lightbox.open img:not(.zoomed) { transform: scale(1); }
-        .lightbox img.zoomed {
-            cursor: zoom-out;
-            transition: opacity 0.3s, transform 0.06s linear;
-        }
-        .lightbox .lb-tag {
-            position: absolute;
-            left: 12px;
-            bottom: 12px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            letter-spacing: 0.03em;
-            color: rgba(255,255,255,0.75);
-            background: rgba(0,0,0,0.4);
-            border: 1px solid rgba(255,255,255,0.14);
-            padding: 4px 8px;
-            border-radius: 5px;
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s;
-            z-index: 5;
-        }
-        .lightbox.open .lb-tag { opacity: 1; }
-        .lightbox .lb-hint {
-            position: absolute;
-            bottom: 12px;
-            right: 12px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 10px;
-            color: rgba(255,255,255,0.55);
-            pointer-events: none;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        .lightbox.open .lb-hint { opacity: 1; }
-
-        @media (max-width: 520px) {
-            body { padding: 32px 14px 28px; padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px)); }
-            h1 { font-size: 24px; }
-            form { flex-direction: column; }
-            input[type="text"] { font-size: 16px; } /* prevents iOS Safari auto-zoom on focus */
-            button.go { padding: 13px 0; }
-            .state-result { flex-direction: column; }
-            .avatar-frame { width: 100%; height: 200px; }
-            .topbar { gap: 10px; }
-        }
-
-        footer {
-            margin-top: 48px;
-            padding-top: 16px;
-            border-top: 1px solid var(--line);
-            font-size: 11px;
-            color: var(--muted-2);
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        footer a {
-            color: var(--muted-2);
-            text-decoration: none;
-        }
-        footer a:hover { color: var(--muted); }
-    </style>
+footer{
+    margin-top:48px;padding-top:16px;border-top:1px solid var(--line);
+    font-size:11px;color:var(--muted-2);display:flex;justify-content:space-between;
+    flex-wrap:wrap;gap:8px;
+}
+footer a{color:var(--muted-2);text-decoration:none}
+footer a:hover{color:var(--muted)}
+</style>
 </head>
 <body>
-
 <div class="wrap">
 
     <div class="topbar">
@@ -649,6 +560,12 @@
     </form>
     <p class="hint" id="hint"></p>
 
+    <div class="history" id="history" hidden>
+        <span class="history-label" id="history-label"></span>
+        <div class="history-list" id="history-list"></div>
+        <button class="history-clear" id="history-clear" type="button"></button>
+    </div>
+
     <div class="stage" id="stage">
         <div class="state state-loading" id="state-loading">
             <p><span class="spinner"></span> <span id="loading-text"></span></p>
@@ -657,19 +574,48 @@
         <div class="state state-error" id="state-error">
             <p class="title" id="error-title"></p>
             <p class="detail" id="error-detail"></p>
+            <button class="open-btn" id="retry-btn" type="button"></button>
         </div>
 
         <div class="state state-result" id="state-result">
-            <div class="avatar-frame" id="avatar-frame">
-                <img id="avatar-img" src="" alt="profile picture">
-                <span class="zoom-tag" id="zoom-tag"></span>
+            <div class="tabs" id="result-tabs" hidden>
+                <button class="tab active" data-tab="avatar" type="button" id="tab-avatar"></button>
+                <button class="tab" data-tab="banner" type="button" id="tab-banner"></button>
             </div>
-            <div class="result-meta">
-                <p class="handle" id="result-username">@kullaniciadi</p>
-                <p class="specs" id="result-specs"></p>
-                <div class="actions">
-                    <a class="download-btn" id="download-btn" download></a>
-                    <button class="open-btn" id="open-btn" type="button"></button>
+            <div class="result-body">
+                <div class="preview-frame" id="preview-frame">
+                    <img id="preview-img" src="" alt="preview" decoding="async">
+                    <span class="zoom-tag" id="zoom-tag"></span>
+                </div>
+                <div class="result-meta">
+                    <p class="handle" id="result-username"></p>
+                    <p class="specs" id="result-specs"></p>
+                    <div class="actions">
+                        <div class="dl-group">
+                            <button class="download-btn" id="download-btn" type="button"></button>
+                            <div class="format-dropdown" id="format-dropdown">
+                                <button class="format-trigger" id="format-trigger" type="button"
+                                        aria-haspopup="listbox" aria-expanded="false">
+                                    <span id="format-current">PNG</span>
+                                    <svg class="format-caret" viewBox="0 0 12 12" aria-hidden="true">
+                                        <path d="M3 4.5l3 3 3-3" fill="none" stroke="currentColor"
+                                              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </button>
+                                <ul class="format-menu" id="format-menu" role="listbox">
+                                    <li role="option" data-value="original" id="fmt-original">Orijinal</li>
+                                    <li role="option" data-value="png">PNG</li>
+                                    <li role="option" data-value="jpeg">JPG</li>
+                                    <li role="option" data-value="webp">WEBP</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <button class="open-btn" id="open-btn" type="button"></button>
+                        <button class="open-btn" id="copy-img-btn" type="button"></button>
+                        <button class="open-btn" id="copy-link-btn" type="button"></button>
+                        <button class="open-btn" id="share-btn" type="button"></button>
+                        <button class="open-btn" id="qr-btn" type="button">QR</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -682,488 +628,16 @@
 
 </div>
 
-<script>
-    /* ---------- i18n ---------- */
-    const dict = {
-        tr: {
-            docTitle: 'hdkicks — Kick profil görseli',
-            kicker: 'Kick · Görsel Aracı',
-            title: 'Kick profil görselini en <span class="hl">yüksek çözünürlükle</span> çek.',
-            lede: "Kullanıcı adı ya da link yeter. Kick'in genel API'sinden alır, ölçeklemez, sadeleştirmez.",
-            goBtn: 'Çek',
-            hintPre: 'Tam link de yapıştırabilirsin — ',
-            hintMono: 'https://kick.com/…',
-            hintPost: ' otomatik ayıklanır.',
-            loading: 'profil aranıyor…',
-            notFoundTitle: 'Kullanıcı bulunamadı',
-            notFoundDetail: (u) => `@${u} adında bir Kick kanalı bulamadım.`,
-            noPicTitle: 'Profil görseli yok',
-            noPicDetail: (u) => `@${u} bir Kick hesabı ama profil fotoğrafı ayarlamamış.`,
-            connTitle: 'Bağlantı hatası',
-            connDetail: 'Kick sunucusuna ulaşılamadı, birkaç saniye sonra tekrar dene.',
-            measuring: 'ölçülüyor…',
-            preparing: 'hazırlanıyor…',
-            downloadBtn: 'Görseli indir',
-            openBtn: 'Tam boy aç',
-            zoomTag: 'büyüt',
-            zoomHint: 'tıkla / çift tıkla: yakınlaştır',
-            closeAria: 'Kapat',
-            themeAria: 'Temayı değiştir',
-            footerNote: "Kick'in genel kanal API'sini kullanır, bağlantılı değildir.",
-            footerBy: 'by Wek1d',
-            original: 'orijinal boyut',
-        },
-        en: {
-            docTitle: 'hdkicks — Kick profile picture',
-            kicker: 'Kick · Image Tool',
-            title: 'Grab a Kick profile picture in its <span class="hl">highest resolution</span>.',
-            lede: "Just a username or a link. Pulled straight from Kick's public API — no resizing, no compression.",
-            goBtn: 'Fetch',
-            hintPre: 'You can paste the full link too — ',
-            hintMono: 'https://kick.com/…',
-            hintPost: ' gets parsed automatically.',
-            loading: 'looking up profile…',
-            notFoundTitle: 'User not found',
-            notFoundDetail: (u) => `Couldn't find a Kick channel named @${u}.`,
-            noPicTitle: 'No profile picture',
-            noPicDetail: (u) => `@${u} is a Kick account, but hasn't set a profile picture.`,
-            connTitle: 'Connection error',
-            connDetail: "Couldn't reach Kick's servers — try again in a few seconds.",
-            measuring: 'measuring…',
-            preparing: 'preparing…',
-            downloadBtn: 'Download image',
-            openBtn: 'Open full size',
-            zoomTag: 'zoom',
-            zoomHint: 'click / double-click to zoom',
-            closeAria: 'Close',
-            themeAria: 'Toggle theme',
-            footerNote: "Uses Kick's public channel API — not affiliated with Kick.",
-            footerBy: 'by Wek1d',
-            original: 'original size',
-        },
-    };
+<div class="qr-modal" id="qr-modal" hidden>
+    <div class="qr-card">
+        <p class="qr-title" id="qr-title"></p>
+        <img id="qr-img" alt="QR">
+        <div class="qr-url" id="qr-url"></div>
+    </div>
+</div>
 
-    let lang = (navigator.language || 'en').toLowerCase().startsWith('tr') ? 'tr' : 'en';
-    let lastErrorState = null; // { type: 'notFound'|'noPic'|'conn', username }
+<div class="toast-root" id="toast-root"></div>
 
-    function t() { return dict[lang]; }
-
-    function applyStaticText() {
-        const d = t();
-        document.title = d.docTitle;
-        document.documentElement.lang = lang;
-        document.getElementById('kicker').textContent = d.kicker;
-        document.getElementById('title').innerHTML = d.title;
-        document.getElementById('lede').textContent = d.lede;
-        document.getElementById('go-btn').textContent = d.goBtn;
-        document.getElementById('hint').innerHTML = `${d.hintPre}<mono>${d.hintMono}</mono>${d.hintPost}`;
-        document.getElementById('loading-text').textContent = d.loading;
-        document.getElementById('download-btn').textContent = downloadBtn._ready ? d.downloadBtn : d.preparing;
-        document.getElementById('open-btn').textContent = d.openBtn;
-        document.getElementById('zoom-tag').textContent = d.zoomTag;
-        document.getElementById('footer-note').textContent = d.footerNote;
-        document.getElementById('footer-by').textContent = d.footerBy;
-        document.getElementById('theme-toggle').setAttribute('aria-label', d.themeAria);
-        document.querySelectorAll('.lang-pill button').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.lang === lang);
-        });
-        if (lastErrorState) renderError(lastErrorState.type, lastErrorState.username);
-    }
-
-    function setLang(next) {
-        lang = next;
-        applyStaticText();
-    }
-
-    document.querySelectorAll('.lang-pill button').forEach(btn => {
-        btn.addEventListener('click', () => setLang(btn.dataset.lang));
-    });
-
-    /* ---------- theme ---------- */
-    // Follows the OS/browser color-scheme preference live. Once the person
-    // uses the toggle, that manual choice wins for the rest of the session
-    // and we stop listening to system changes.
-    const themeMedia = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
-    let themeOverridden = false;
-    let theme = themeMedia && themeMedia.matches ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', theme);
-    document.getElementById('theme-toggle').addEventListener('click', () => {
-        themeOverridden = true;
-        theme = theme === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-theme', theme);
-    });
-    if (themeMedia) {
-        const onSchemeChange = (e) => {
-            if (themeOverridden) return;
-            theme = e.matches ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', theme);
-        };
-        if (themeMedia.addEventListener) themeMedia.addEventListener('change', onSchemeChange);
-        else if (themeMedia.addListener) themeMedia.addListener(onSchemeChange); // older Safari
-    }
-
-    /* ---------- app logic ---------- */
-    const form = document.getElementById('pfp-form');
-    const queryInput = document.getElementById('query');
-    const goBtn = document.getElementById('go-btn');
-    const stage = document.getElementById('stage');
-    const isMobile = window.matchMedia('(max-width: 640px)').matches;
-
-    const states = {
-        loading: document.getElementById('state-loading'),
-        error: document.getElementById('state-error'),
-        result: document.getElementById('state-result'),
-    };
-
-    const avatarFrame = document.getElementById('avatar-frame');
-    const avatarImg = document.getElementById('avatar-img');
-    const resultUsername = document.getElementById('result-username');
-    const resultSpecs = document.getElementById('result-specs');
-    const downloadBtn = document.getElementById('download-btn');
-    const openBtn = document.getElementById('open-btn');
-    const errorTitle = document.getElementById('error-title');
-    const errorDetail = document.getElementById('error-detail');
-
-    function showState(name) {
-        const wasHidden = !stage.classList.contains('shown');
-        stage.classList.add('shown');
-        Object.entries(states).forEach(([key, el]) => {
-            el.classList.toggle('active', key === name);
-        });
-        // On small screens the on-screen keyboard usually hides the stage
-        // right after a search — bring it into view automatically.
-        if (wasHidden && isMobile) {
-            requestAnimationFrame(() => stage.scrollIntoView({ behavior: 'smooth', block: 'start' }));
-        }
-    }
-
-    function renderError(type, username) {
-        lastErrorState = { type, username };
-        const d = t();
-        if (type === 'notFound') {
-            errorTitle.textContent = d.notFoundTitle;
-            errorDetail.textContent = d.notFoundDetail(username);
-        } else if (type === 'noPic') {
-            errorTitle.textContent = d.noPicTitle;
-            errorDetail.textContent = d.noPicDetail(username);
-        } else {
-            errorTitle.textContent = d.connTitle;
-            errorDetail.textContent = d.connDetail;
-        }
-        showState('error');
-    }
-
-    function openLightbox(src) {
-        const overlay = document.createElement('div');
-        overlay.className = 'lightbox';
-
-        const stage = document.createElement('div');
-        stage.className = 'lb-stage';
-
-        const closeBtn = document.createElement('button');
-        closeBtn.className = 'lb-close';
-        closeBtn.innerHTML = '&times;';
-        closeBtn.setAttribute('aria-label', t().closeAria);
-
-        const img = document.createElement('img');
-        img.src = src;
-        img.draggable = false;
-
-        const tag = document.createElement('span');
-        tag.className = 'lb-tag';
-        tag.textContent = 'hdkicks';
-
-        const hint = document.createElement('span');
-        hint.className = 'lb-hint';
-        hint.textContent = t().zoomHint;
-
-        stage.appendChild(img);
-        overlay.appendChild(stage);
-        overlay.appendChild(tag);
-        overlay.appendChild(hint);
-        overlay.appendChild(closeBtn);
-        document.body.appendChild(overlay);
-        requestAnimationFrame(() => overlay.classList.add('open'));
-
-        // Click = toggle 2.2x zoom centered on the click point.
-        // Double-click = toggle a deeper 3.6x zoom instead.
-        // On devices with a mouse, moving over a zoomed image pans it
-        // (magnifier-style); on touch it just re-centers on tap.
-        const ZOOM_1 = 2.2;
-        const ZOOM_2 = 3.6;
-        const canPan = window.matchMedia('(pointer: fine)').matches;
-        let zoomed = false;
-        let clickTimer = null;
-
-        function setOrigin(e) {
-            const rect = img.getBoundingClientRect();
-            const x = ((e.clientX - rect.left) / rect.width) * 100;
-            const y = ((e.clientY - rect.top) / rect.height) * 100;
-            img.style.transformOrigin = `${Math.max(0, Math.min(100, x))}% ${Math.max(0, Math.min(100, y))}%`;
-        }
-
-        function onPan(e) { setOrigin(e); }
-
-        function zoomIn(e, level) {
-            setOrigin(e);
-            img.style.transform = `scale(${level})`;
-            img.classList.add('zoomed');
-            zoomed = true;
-            if (canPan) img.addEventListener('mousemove', onPan);
-        }
-
-        function zoomOut() {
-            img.style.transform = '';
-            img.style.transformOrigin = '';
-            img.classList.remove('zoomed');
-            zoomed = false;
-            img.removeEventListener('mousemove', onPan);
-        }
-
-        img.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; return; }
-            clickTimer = setTimeout(() => {
-                clickTimer = null;
-                zoomed ? zoomOut() : zoomIn(e, ZOOM_1);
-            }, 230);
-        });
-
-        img.addEventListener('dblclick', (e) => {
-            e.stopPropagation();
-            if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
-            zoomed ? zoomOut() : zoomIn(e, ZOOM_2);
-        });
-
-        function close() {
-            overlay.classList.remove('open');
-            overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
-            document.removeEventListener('keydown', onKey);
-        }
-        function onKey(e) { if (e.key === 'Escape') close(); }
-
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay || e.target === closeBtn) close();
-        });
-        closeBtn.addEventListener('click', close);
-        document.addEventListener('keydown', onKey);
-    }
-
-    function extractUsername(raw) {
-        let v = raw.trim();
-        if (!v) return null;
-        v = v.replace(/^https?:\/\//i, '');
-        v = v.replace(/^www\./i, '');
-        v = v.replace(/^kick\.com\//i, '');
-        v = v.split('?')[0].split('#')[0];
-        v = v.replace(/\/+$/, '');
-        v = v.split('/')[0];
-        return v || null;
-    }
-
-    const PROXIES = [
-        (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
-        (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-    ];
-
-    async function fetchWithProxies(url, isJson) {
-        let lastErr;
-        for (const build of PROXIES) {
-            try {
-                const res = await fetch(build(url), { headers: isJson ? { 'Accept': 'application/json' } : {} });
-                if (!res.ok) throw new Error('HTTP ' + res.status);
-                return res;
-            } catch (e) {
-                lastErr = e;
-            }
-        }
-        throw lastErr || new Error('proxy failed');
-    }
-
-    async function fetchChannel(username) {
-        const apiUrl = `https://kick.com/api/v2/channels/${encodeURIComponent(username)}`;
-        try {
-            const direct = await fetch(apiUrl, { headers: { 'Accept': 'application/json' } });
-            if (direct.ok) return direct.json();
-            if (direct.status === 404) throw { notFound: true };
-        } catch (e) {
-            if (e && e.notFound) throw e;
-        }
-        const res = await fetchWithProxies(apiUrl, true);
-        if (res.status === 404) throw { notFound: true };
-        return res.json();
-    }
-
-    // Kick's CDN sometimes serves resized derivatives via path segments
-    // (thumb-/small-/medium-) or resize query params. We try, in order,
-    // the most likely "un-resized" forms before falling back to whatever
-    // the API gave us, to keep quality loss to a minimum.
-    function generateProfilePicVariants(url) {
-        if (!url) return [];
-        const variants = [];
-        const noQuery = url.split('?')[0];
-        variants.push(noQuery);
-        variants.push(url.replace(/\/(thumb|small|medium)-/i, '/fullsize-'));
-        variants.push(url.replace(/\/(thumb|small|medium)-/i, '/original-'));
-        variants.push(noQuery.replace(/\/(thumb|small|medium)-/i, '/'));
-        variants.push(url);
-        return [...new Set(variants)];
-    }
-
-    async function getBestAvailableImage(url) {
-        const variants = generateProfilePicVariants(url);
-        for (const variant of variants) {
-            try {
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                await new Promise((resolve, reject) => {
-                    img.onload = resolve;
-                    img.onerror = reject;
-                    img.src = variant;
-                    setTimeout(() => reject(new Error('timeout')), 5000);
-                });
-                return variant;
-            } catch {
-                // continue
-            }
-        }
-        return url;
-    }
-
-    function loadImageDims(src) {
-        return new Promise((resolve) => {
-            const im = new Image();
-            im.crossOrigin = 'anonymous';
-            im.onload = () => resolve({ w: im.naturalWidth, h: im.naturalHeight });
-            im.onerror = () => resolve(null);
-            im.src = src;
-        });
-    }
-
-    function formatBytes(bytes) {
-        if (!bytes) return null;
-        if (bytes < 1024) return bytes + ' B';
-        if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
-        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-    }
-
-    function extFromUrl(url) {
-        try {
-            const clean = url.split('?')[0];
-            return (clean.split('.').pop() || 'webp').slice(0, 4).toUpperCase();
-        } catch {
-            return 'WEBP';
-        }
-    }
-
-    async function buildDownload(imgUrl) {
-        try {
-            const direct = await fetch(imgUrl);
-            if (!direct.ok) throw new Error('bad status');
-            const blob = await direct.blob();
-            return { href: URL.createObjectURL(blob), size: blob.size, isBlob: true };
-        } catch (e) {
-            try {
-                const res = await fetchWithProxies(imgUrl, false);
-                const blob = await res.blob();
-                return { href: URL.createObjectURL(blob), size: blob.size, isBlob: true };
-            } catch (e2) {
-                // Last resort: point straight at the image URL. Browsers
-                // ignore the `download` attribute on cross-origin links, so
-                // this would otherwise just navigate the tool away — open
-                // it in a new tab instead so the person can save it manually
-                // without losing their result.
-                return { href: imgUrl, size: null, isBlob: false };
-            }
-        }
-    }
-
-    function fileNameFromUrl(url, username) {
-        const ext = extFromUrl(url).toLowerCase();
-        return `${username}-hdkicks.${ext || 'webp'}`;
-    }
-
-    async function run(rawInput) {
-        const username = extractUsername(rawInput);
-        if (!username) return;
-
-        lastErrorState = null;
-        showState('loading');
-        goBtn.disabled = true;
-        avatarImg.classList.remove('loaded');
-        avatarImg.src = '';
-        resultSpecs.textContent = '';
-
-        try {
-            const data = await fetchChannel(username);
-            const originalPic = data && data.user && data.user.profile_pic;
-
-            if (!originalPic) {
-                renderError('noPic', username);
-                return;
-            }
-
-            const bestPic = await getBestAvailableImage(originalPic);
-
-            avatarImg.src = bestPic;
-            avatarImg.onload = () => avatarImg.classList.add('loaded');
-            if (avatarImg.complete) avatarImg.classList.add('loaded');
-
-            resultUsername.textContent = `@${data.user.username || username}`;
-            resultSpecs.textContent = t().measuring;
-
-            showState('result');
-
-            const dimsPromise = loadImageDims(bestPic);
-            const downloadPromise = buildDownload(bestPic);
-
-            downloadBtn.href = '#';
-            downloadBtn.removeAttribute('target');
-            downloadBtn.removeAttribute('rel');
-            downloadBtn._ready = false;
-            downloadBtn.textContent = t().preparing;
-
-            const [dims, dl] = await Promise.all([dimsPromise, downloadPromise]);
-
-            const parts = [];
-            parts.push(dims ? `${dims.w} × ${dims.h}px` : t().original);
-            parts.push(extFromUrl(bestPic));
-            if (dl.size) parts.push(formatBytes(dl.size));
-            resultSpecs.innerHTML = parts.map(p => `<span>${p}`).join('<span class="sep">·');
-
-            downloadBtn.href = dl.href;
-            downloadBtn.download = fileNameFromUrl(bestPic, username);
-            if (dl.isBlob) {
-                downloadBtn.removeAttribute('target');
-                downloadBtn.removeAttribute('rel');
-            } else {
-                downloadBtn.target = '_blank';
-                downloadBtn.rel = 'noopener';
-            }
-            downloadBtn._ready = true;
-            downloadBtn.textContent = t().downloadBtn;
-
-            openBtn.onclick = () => openLightbox(bestPic);
-            avatarFrame.onclick = () => openLightbox(bestPic);
-
-        } catch (e) {
-            if (e && e.notFound) {
-                renderError('notFound', username);
-            } else {
-                renderError('conn', username);
-            }
-        } finally {
-            goBtn.disabled = false;
-        }
-    }
-
-    form.addEventListener('submit', (e) => {
-        e.preventDefault();
-        run(queryInput.value);
-    });
-
-    applyStaticText();
-</script>
-
+<script src="app.js" defer></script>
 </body>
 </html>

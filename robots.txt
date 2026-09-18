@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://wek1d.github.io/hdkicks/sitemap.xml
