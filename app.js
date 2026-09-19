@@ -43,6 +43,7 @@ const dict = {
     title: 'Kick profil görselini en <span class="hl">yüksek çözünürlükle</span> çek.',
     lede: "Kullanıcı adı ya da link yeter. Kick'in genel API'sinden alır, ölçeklemez, sadeleştirmez. İstersen PNG/JPEG/WebP'ye dönüştür.",
     goBtn: 'Çek',
+    queryPlaceholder: 'kullaniciadi',
     hintPre: 'Tam link de yapıştırabilirsin — ',
     hintMono: 'https://kick.com/…',
     hintPost: ' otomatik ayıklanır.',
@@ -97,6 +98,7 @@ const dict = {
     title: 'Grab a Kick profile picture in its <span class="hl">highest resolution</span>.',
     lede: "Just a username or a link. Pulled straight from Kick's public API — no resizing, no compression. Convert to PNG/JPEG/WebP if you want.",
     goBtn: 'Fetch',
+    queryPlaceholder: 'username',
     hintPre: 'You can paste the full link too — ',
     hintMono: 'https://kick.com/…',
     hintPost: ' gets parsed automatically.',
@@ -149,7 +151,17 @@ const dict = {
 
 /* ---------- State ---------- */
 const $ = (id) => document.getElementById(id);
-let lang = (navigator.language || 'en').toLowerCase().startsWith('tr') ? 'tr' : 'en';
+const LANG_KEY = 'hdkicks-lang';
+function getStoredLang() {
+  try {
+    const v = localStorage.getItem(LANG_KEY);
+    return (v === 'tr' || v === 'en') ? v : null;
+  } catch { return null; }
+}
+function storeLang(value) {
+  try { localStorage.setItem(LANG_KEY, value); } catch {}
+}
+let lang = getStoredLang() || ((navigator.language || 'en').toLowerCase().startsWith('tr') ? 'tr' : 'en');
 let lastErrorState = null;
 let currentFormat = 'original';
 const state = {
@@ -255,6 +267,7 @@ function applyStaticText() {
   $('title').innerHTML = d.title;
   $('lede').textContent = d.lede;
   goBtn.textContent = d.goBtn;
+  $('query').placeholder = d.queryPlaceholder;
   $('hint').innerHTML = `${d.hintPre}<mono>${d.hintMono}</mono>${d.hintPost}`;
   loadingText.textContent = d.loading;
   openBtn.textContent = d.openBtn;
@@ -279,20 +292,34 @@ function applyStaticText() {
   if (lastErrorState) renderError(lastErrorState.type, lastErrorState.username);
   if (state.assets.avatar) renderSpecs();
 }
-function setLang(next) { lang = next; applyStaticText(); }
+function setLang(next) { lang = next; storeLang(next); applyStaticText(); }
 document.querySelectorAll('.lang-pill button').forEach(btn => {
   btn.addEventListener('click', () => setLang(btn.dataset.lang));
 });
 
-/* ---------- Theme ---------- */
+/* ---------- Theme ----------
+   Öncelik sırası: kullanıcının daha önce kaydettiği tercih (localStorage)
+   > tarayıcı/sistem tercihi (prefers-color-scheme) > 'dark' varsayılanı.
+   Kaydedilmiş bir tercih varsa sistem teması değişse bile onu ezmiyoruz. */
+const THEME_KEY = 'hdkicks-theme';
 const themeMedia = window.matchMedia ? window.matchMedia('(prefers-color-scheme: light)') : null;
-let themeOverridden = false;
-let theme = themeMedia && themeMedia.matches ? 'light' : 'dark';
+
+function getStoredTheme() {
+  try { return localStorage.getItem(THEME_KEY); } catch { return null; }
+}
+function storeTheme(value) {
+  try { localStorage.setItem(THEME_KEY, value); } catch {}
+}
+
+let themeOverridden = !!getStoredTheme();
+let theme = getStoredTheme() || (themeMedia && themeMedia.matches ? 'light' : 'dark');
 document.documentElement.setAttribute('data-theme', theme);
+
 $('theme-toggle').addEventListener('click', () => {
   themeOverridden = true;
   theme = theme === 'dark' ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', theme);
+  storeTheme(theme);
 });
 if (themeMedia) {
   const onSchemeChange = (e) => {
@@ -351,15 +378,17 @@ function renderHistory() {
 historyClear.addEventListener('click', () => { saveHistory([]); renderHistory(); });
 
 /* ---------- URL helpers ---------- */
+/* Paylaşım linkleri artık #u=kullanıcı kullanıyor.
+   Google hash fragment'ları ayrı sayfa saymaz → ?u= gibi
+   duplicate content problemi çıkarmaz. */
 function shareUrl(username) {
   const base = location.origin + location.pathname;
-  const u = new URL(base);
-  if (username) u.searchParams.set('u', username);
-  return u.toString();
+  if (!username) return base;
+  return `${base}#u=${encodeURIComponent(username)}`;
 }
-function updateUrl(username) {
-  try { history.replaceState(null, '', shareUrl(username)); } catch {}
-}
+/* Adres çubuğunu HİÇ değiştirmiyoruz → tek URL, tek sayfa,
+   Google için temiz. Paylaşım linkleri shareUrl() ile üretiliyor. */
+function updateUrl() { /* intentionally no-op */ }
 
 /* ---------- Username extract ---------- */
 function extractUsername(raw) {
@@ -532,8 +561,17 @@ function blobToImage(blob) {
     img.src = url;
   });
 }
+/* Firefox güvenilirliği: eğer blob zaten hedef formattaysa
+   canvas'a hiç girmeden direkt blob'u döndür. */
 async function convertImage(blob, format, quality = 0.95) {
   if (format === 'original') return blob;
+
+  const currentType = (blob.type || '').toLowerCase();
+  const targetType = format === 'jpeg' ? 'image/jpeg' : `image/${format}`;
+
+  if (currentType === targetType) return blob;
+  if (format === 'jpeg' && currentType === 'image/jpg') return blob;
+
   const img = await blobToImage(blob);
   const canvas = document.createElement('canvas');
   canvas.width = img.naturalWidth;
@@ -544,9 +582,19 @@ async function convertImage(blob, format, quality = 0.95) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
   ctx.drawImage(img, 0, 0);
+
   return new Promise((resolve, reject) => {
-    canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')),
-      `image/${format}`, format === 'png' ? undefined : quality);
+    canvas.toBlob(
+      (b) => {
+        if (!b) { reject(new Error('toBlob failed')); return; }
+        if (b.type !== targetType) {
+          b = new Blob([b], { type: targetType });
+        }
+        resolve(b);
+      },
+      targetType,
+      format === 'png' ? undefined : quality
+    );
   });
 }
 
@@ -572,16 +620,25 @@ function extForFormat(fmt, fallback) {
 }
 
 /* ---------- Download ---------- */
+/* Not: Firefox, belirli görsel türlerini (özellikle webp) blob: URL üzerinden
+   `download` özniteliğiyle indirirken, dosyayı diske kaydetmenin yanında
+   kendi görüntüleyicisinde ayrı bir sekmede de açabiliyor. Bu, MIME tipinden
+   (octet-stream dahil) ve `blob:`/`data:` URI seçiminden bağımsız, Firefox'un
+   kendi içerik-önizleme davranışı; sayfa tarafında güvenilir biçimde
+   engellenemiyor. İndirme yine de doğru dosyayı, doğru adla ve orijinal
+   baytlarla diske kaydediyor — ekstra sekme sadece görsel bir önizleme. */
 function triggerDownload(blob, filename) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
-  a.style.display = 'none';
+  a.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0;pointer-events:none;';
   document.body.appendChild(a);
   a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  setTimeout(() => {
+    if (a.parentNode) a.parentNode.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 10000);
 }
 function ensureBlob(asset) {
   if (asset.blob) return Promise.resolve(asset.blob);
@@ -599,6 +656,7 @@ async function handleDownload() {
     const fmt = currentFormat;
     let outBlob = blob;
     let ext = asset.ext || extFromUrl(asset.url);
+
     if (fmt !== 'original') {
       try {
         outBlob = await convertImage(blob, fmt);
@@ -608,7 +666,10 @@ async function handleDownload() {
         return;
       }
     }
-    triggerDownload(outBlob, `${state.username}-${state.activeTab}.${ext}`);
+
+    const finalBlob = new Blob([outBlob], { type: 'application/octet-stream' });
+
+    await triggerDownload(finalBlob, `${state.username}-${state.activeTab}.${ext}`);
     toast(t().toastDownloaded);
   } catch {
     toast(t().toastDownloadFailed, 'error');
@@ -634,7 +695,7 @@ async function handleCopyImage() {
   } catch { toast(t().toastCopyFailed, 'error'); }
 }
 
-/* SİTE linkini kopyala: https://wek1d.github.io/hdkicks/?u=kullanici */
+/* SİTE linkini kopyala: https://wek1d.github.io/hdkicks/#u=kullanici */
 async function handleCopyLink() {
   try {
     const url = shareUrl(state.username);
@@ -652,15 +713,12 @@ async function handleShare() {
 
   try {
     if (navigator.share) {
-      // 1) Site linki + metin
       try {
         await navigator.share({ title, text, url });
         return;
       } catch (e) {
         if (e && e.name === 'AbortError') return;
-        // devam et, file fallback'i dene
       }
-      // 2) Dosya paylaşımı (bazı tarayıcılarda URL kabul etmez)
       const asset = state.assets[state.activeTab];
       if (asset && navigator.canShare) {
         const blob = await ensureBlob(asset);
@@ -672,12 +730,10 @@ async function handleShare() {
           return;
         }
       }
-      // 3) Klasik kopyala fallback
       await navigator.clipboard.writeText(url);
       toast(t().toastLinkCopied);
       return;
     }
-    // navigator.share yok → kopyala
     await navigator.clipboard.writeText(url);
     toast(t().toastLinkCopied);
   } catch (e) {
@@ -977,15 +1033,42 @@ queryInput.addEventListener('paste', (e) => {
   }
 });
 
+/* ---------- Logo → ana sayfa ---------- */
+$('logo').addEventListener('click', (e) => {
+  e.preventDefault();
+  try { history.replaceState(null, '', location.pathname); } catch {}
+  queryInput.value = '';
+  stage.classList.remove('shown');
+  goBtn.disabled = false;
+  previewImg.removeAttribute('src');
+  previewImg.removeAttribute('srcset');
+  previewFrame.classList.remove('loaded');
+  resultSpecs.textContent = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  setTimeout(() => queryInput.focus(), 250);
+});
+
 /* ---------- Init ---------- */
 applyStaticText();
 renderHistory();
 
+/* Açılışta #u=kullanıcı (yeni) veya ?u=kullanıcı (eski linkler)
+   varsa otomatik çek. Backward-compatible. */
 (function autoFromUrl() {
   try {
-    const params = new URLSearchParams(location.search);
-    const u = params.get('u');
-    if (u) { queryInput.value = u; run(u); }
+    let u = null;
+    if (location.hash) {
+      const m = location.hash.match(/^#u=([^&]+)/);
+      if (m) u = decodeURIComponent(m[1]);
+    }
+    if (!u) {
+      const params = new URLSearchParams(location.search);
+      u = params.get('u');
+    }
+    if (u) {
+      queryInput.value = u;
+      run(u);
+    }
   } catch {}
 })();
 
