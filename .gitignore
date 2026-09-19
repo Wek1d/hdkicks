@@ -1,7 +1,9 @@
-/yedek
-.gitihnore
+# Yedekler
+yedek/
+*.7z
+*.zip
+*.rar
 
-#yedek
 # OS
 .DS_Store
 Thumbs.db
