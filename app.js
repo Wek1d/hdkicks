@@ -69,6 +69,7 @@ const dict = {
     qrTitle: 'Bu sonucu paylaş',
     tabAvatar: 'Avatar',
     tabBanner: 'Banner',
+    kickOpenBtn: "Kick'te aç",
     zoomTag: 'büyüt',
     zoomHint: 'tıkla / çift tıkla: yakınlaştır',
     closeAria: 'Kapat',
@@ -124,6 +125,7 @@ const dict = {
     qrTitle: 'Share this result',
     tabAvatar: 'Avatar',
     tabBanner: 'Banner',
+    kickOpenBtn: 'Open on Kick',
     zoomTag: 'zoom',
     zoomHint: 'click / double-click to zoom',
     closeAria: 'Close',
@@ -204,6 +206,8 @@ const historyClear = $('history-clear');
 const resultTabs = $('result-tabs');
 const tabAvatar = $('tab-avatar');
 const tabBanner = $('tab-banner');
+const kickOpenBtn = $('kick-open-btn');
+const kickOpenText = $('kick-open-text');
 const toastRoot = $('toast-root');
 const qrModal = $('qr-modal');
 const qrImg = $('qr-img');
@@ -281,6 +285,8 @@ function applyStaticText() {
   retryBtn.textContent = d.retryBtn;
   tabAvatar.textContent = d.tabAvatar;
   tabBanner.textContent = d.tabBanner;
+  kickOpenText.textContent = d.kickOpenBtn;
+  kickOpenBtn.setAttribute('aria-label', `${d.kickOpenBtn} — kick.com/${state.username || ''}`);
   historyLabel.textContent = d.historyLabel;
   historyClear.textContent = d.historyClear;
   qrTitle.textContent = d.qrTitle;
@@ -975,6 +981,8 @@ async function run(rawInput) {
       tabBanner.classList.remove('active');
 
       resultUsername.textContent = `@${resolvedUsername}`;
+      kickOpenBtn.href = `https://kick.com/${encodeURIComponent(resolvedUsername)}`;
+      kickOpenBtn.setAttribute('aria-label', `${t().kickOpenBtn} — kick.com/${resolvedUsername}`);
       renderPreview();
       showState('result');
       onIdle(enrichSizes);
@@ -1026,6 +1034,15 @@ copyLinkBtn.addEventListener('click', handleCopyLink);
 shareBtn.addEventListener('click', handleShare);
 qrBtn.addEventListener('click', handleQr);
 
+/* "/" kısayolu: herhangi bir input'a yazmıyorken kullanıcı adı kutusuna odaklan */
+document.addEventListener('keydown', (e) => {
+  if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return;
+  const tag = (document.activeElement && document.activeElement.tagName) || '';
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+  e.preventDefault();
+  queryInput.focus();
+});
+
 queryInput.addEventListener('paste', (e) => {
   const text = (e.clipboardData || window.clipboardData).getData('text') || '';
   if (/^https?:\/\/(www\.)?kick\.com\//i.test(text.trim())) {
@@ -1044,6 +1061,7 @@ $('logo').addEventListener('click', (e) => {
   previewImg.removeAttribute('srcset');
   previewFrame.classList.remove('loaded');
   resultSpecs.textContent = '';
+  kickOpenBtn.href = 'https://kick.com/';
   window.scrollTo({ top: 0, behavior: 'smooth' });
   setTimeout(() => queryInput.focus(), 250);
 });

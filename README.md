@@ -20,6 +20,8 @@ Paste a Kick username or a `kick.com/...` link, hit **Fetch**, and it resolves t
 - **Copy link** — copies a shareable `#u=username` deep link.
 - **Native share** — uses the Web Share API when available; falls back to sharing the image file, then to copying the link.
 - **QR code** — generates a QR for the shareable link.
+- **Open on Kick** — one click to open the channel's actual `kick.com/<username>` page in a new tab.
+- **Keyboard shortcut** — press `/` anywhere (outside an input) to jump focus to the username field.
 - **Recent history** — last 6 usernames, stored locally (localStorage).
 - **Auto-parse** — pasting a full `https://kick.com/...` link auto-fills and fetches.
 - **Auto theme + language** — follows `prefers-color-scheme`; defaults to Turkish or English from the browser language, with a manual switch.

@@ -179,13 +179,20 @@ button.go:disabled{background:var(--disabled-bg);color:var(--disabled-fg);cursor
     padding:22px;box-shadow:var(--shadow);
 }
 
+.tabs-row{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin:0 0 20px;
+}
 .tabs{
     display:inline-flex;
     align-items:stretch;
     border:1px solid var(--line-2);
     border-radius:7px;
     overflow:hidden;
-    margin:0 0 20px;
+    margin:0;
     font-family:'JetBrains Mono',monospace;
     font-size:11px;
     font-weight:700;
@@ -193,6 +200,25 @@ button.go:disabled{background:var(--disabled-bg);color:var(--disabled-fg);cursor
     line-height:1;
 }
 .tabs[hidden]{display:none}
+.kick-open-btn{
+    display:inline-flex;align-items:center;gap:7px;
+    margin-left:auto;
+    padding:8px 14px;
+    border:1px solid var(--line-2);
+    border-radius:7px;
+    background:transparent;
+    color:var(--muted);
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.04em;
+    text-decoration:none;
+    cursor:pointer;
+    transition:color .15s ease, border-color .15s ease, background .15s ease;
+    white-space:nowrap;
+}
+.kick-open-btn svg{width:14px;height:14px;flex-shrink:0}
+.kick-open-btn:hover{color:var(--accent);border-color:var(--accent);background:var(--accent-soft)}
 .tabs .tab{
     background:transparent;
     border:none;
@@ -468,8 +494,10 @@ button.open-btn:hover{border-color:var(--accent);color:var(--text);background:va
     .dl-group{width:100%}
     button.download-btn{flex:1;padding:13px 16px}
     .format-trigger{padding:0 12px;font-size:10px}
+    .tabs-row{flex-wrap:wrap}
     .tabs{width:100%}
     .tabs .tab{flex:1;text-align:center;padding:10px 8px;font-size:11px}
+    .kick-open-btn{margin-left:0;flex:1;justify-content:center}
     .qr-card img{width:200px;height:200px}
 }
 
