@@ -61,6 +61,22 @@ Paste a Kick username or a `kick.com/...` link, hit **Fetch**, and it resolves t
 
 ---
 
+## Build / deploy (docs is served, root is source)
+
+The repo root holds the readable, commented source (`index.html`, `style.css`, `app.js`). A tiny Node script minifies everything and strips comments into `/docs`, and **GitHub Pages is configured to serve from `/docs`** — no separate branch or repo needed.
+
+```bash
+npm install     # one-time
+npm run build   # every time you change index.html / style.css / app.js
+git add .
+git commit -m "..."
+git push
+```
+
+`npm run build` regenerates `/docs` from scratch each time, so just edit the root files normally (comments, AI-assisted or not, whatever) and run the build before pushing. Never hand-edit anything inside `/docs` — it gets wiped on the next build.
+
+One-time GitHub setup: **Settings → Pages → Branch: `main` / Folder: `/docs`**.
+
 ## Running it locally
 
 ```bash

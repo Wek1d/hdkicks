@@ -1,0 +1,18 @@
+{
+  "name": "hdkicks",
+  "version": "1.0.0",
+  "description": "Pulls a Kick channel's profile picture and banner at the highest resolution Kick's public API actually has — and lets you preview, convert, copy, share, or download them. Nothing resized, nothing re-encoded unless you ask for it.",
+  "main": "app.js",
+  "private": true,
+  "scripts": {
+    "build": "node build.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "csso-cli": "^4.0.2",
+    "html-minifier-terser": "^7.2.0",
+    "terser": "^5.51.2"
+  }
+}
