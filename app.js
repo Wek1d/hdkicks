@@ -717,6 +717,85 @@ function extForFormat(fmt, fallback) {
   if (fmt === 'webp') return 'webp';
   return fallback || 'webp';
 }
+function getSafeFilename(baseName, mode, format) {
+  const clean = String(baseName || 'kick').toLowerCase().replace(/[^a-z0-9._-]+/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  const kind = mode === 'enhanced' ? 'enhanced' : 'original';
+  const ext = format === 'jpeg' ? 'jpg' : (format || 'png');
+  return `${clean}-${kind}.${ext}`;
+}
+function pngChunk(type, data) {
+  const typeBytes = new TextEncoder().encode(type);
+  const chunk = new Uint8Array(12 + data.length);
+  const view = new DataView(chunk.buffer);
+  view.setUint32(0, data.length);
+  chunk.set(typeBytes, 4);
+  chunk.set(data, 8);
+
+  let crc = 0xffffffff;
+  for (let i = 4; i < 8 + data.length; i++) {
+    crc ^= chunk[i];
+    for (let bit = 0; bit < 8; bit++) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+  }
+  view.setUint32(8 + data.length, (crc ^ 0xffffffff) >>> 0);
+  return chunk;
+}
+async function addPngMetadata(blob, username) {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const signature = [137, 80, 78, 71, 13, 10, 26, 10];
+  if (!signature.every((byte, index) => bytes[index] === byte)) return blob;
+
+  const metadata = {
+    Title: `${username} Kick profile image`,
+    Subject: 'Kick profile image',
+    Author: 'Arda Keçeci',
+    Description: `Kick profile image of ${username}, exported with hdkicks.`,
+    Copyright: 'Copyright 2026 Arda Keçeci',
+    Software: 'hdkicks',
+    Source: 'Kick',
+    GitHub: 'https://github.com/Wek1d/hdkicks',
+    Keywords: 'Kick; profile image; hdkicks',
+    Tags: 'Kick; profile image; hdkicks',
+    Comment: 'Metadata added by hdkicks during export.',
+  };
+  const chunks = Object.entries(metadata).map(([keyword, value]) => {
+    const keyBytes = Uint8Array.from(keyword, char => char.charCodeAt(0));
+    const textBytes = Uint8Array.from(value, char => char.charCodeAt(0));
+    const data = new Uint8Array(keyBytes.length + 1 + textBytes.length);
+    data.set(keyBytes);
+    data.set(textBytes, keyBytes.length + 1);
+    return pngChunk('tEXt', data);
+  });
+  const escapeXml = value => String(value).replace(/[&<>"']/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;',
+  })[char]);
+  const safeUsername = escapeXml(username || 'Kick user');
+  const xmp = `<?xpacket begin="\uFEFF" id="W5M0MpCehiHzreSzNTczkc9d"?><x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xmp="http://ns.adobe.com/xap/1.0/" xmlns:xmpRights="http://ns.adobe.com/xap/1.0/rights/" xmlns:photoshop="http://ns.adobe.com/photoshop/1.0/"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">${safeUsername} Kick profile image</rdf:li></rdf:Alt></dc:title><dc:creator><rdf:Seq><rdf:li>Arda Keçeci</rdf:li></rdf:Seq></dc:creator><dc:description><rdf:Alt><rdf:li xml:lang="x-default">Kick profile image of ${safeUsername}, exported with hdkicks.</rdf:li></rdf:Alt></dc:description><dc:subject><rdf:Bag><rdf:li>Kick</rdf:li><rdf:li>profile image</rdf:li><rdf:li>hdkicks</rdf:li></rdf:Bag></dc:subject><dc:rights><rdf:Alt><rdf:li xml:lang="x-default">Copyright 2026 Arda Keçeci</rdf:li></rdf:Alt></dc:rights><xmp:CreatorTool>hdkicks</xmp:CreatorTool><xmpRights:WebStatement>https://github.com/Wek1d/hdkicks</xmpRights:WebStatement><photoshop:Source>Kick</photoshop:Source><photoshop:Credit>hdkicks</photoshop:Credit></rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end="w"?>`;
+  const encoder = new TextEncoder();
+  const keyword = encoder.encode('XML:com.adobe.xmp');
+  const xmpBytes = encoder.encode(xmp);
+  const internationalText = new Uint8Array(keyword.length + 5 + xmpBytes.length);
+  internationalText.set(keyword);
+  internationalText.set(xmpBytes, keyword.length + 5);
+  chunks.push(pngChunk('iTXt', internationalText));
+
+  let offset = 8;
+  while (offset + 12 <= bytes.length) {
+    const length = new DataView(bytes.buffer, bytes.byteOffset + offset, 4).getUint32(0);
+    if (String.fromCharCode(...bytes.subarray(offset + 4, offset + 8)) === 'IEND') break;
+    offset += length + 12;
+  }
+  if (offset + 12 > bytes.length) return blob;
+
+  const result = new Uint8Array(bytes.length + chunks.reduce((sum, chunk) => sum + chunk.length, 0));
+  result.set(bytes.subarray(0, offset), 0);
+  let writeOffset = offset;
+  for (const chunk of chunks) {
+    result.set(chunk, writeOffset);
+    writeOffset += chunk.length;
+  }
+  result.set(bytes.subarray(offset), writeOffset);
+  return new Blob([result], { type: 'image/png' });
+}
 function upscaleBlob(blob, scale = 2) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -792,24 +871,23 @@ async function handleDownload() {
   const originalLabel = downloadBtn.textContent;
   downloadBtn.textContent = t().preparing;
   try {
-    const sourceBlob = asset.displayMode === 'enhanced' && asset.enhanced ? asset.enhanced.blob : await ensureBlob(asset);
+    let sourceBlob = asset.displayMode === 'enhanced' && asset.enhanced ? asset.enhanced.blob : await ensureBlob(asset);
     const fmt = currentFormat;
     let outBlob = sourceBlob;
     let ext = asset.displayMode === 'enhanced' ? 'png' : (asset.ext || extFromUrl(asset.url));
 
     if (fmt !== 'original') {
-      try {
-        outBlob = await convertImage(sourceBlob, fmt);
-        ext = extForFormat(fmt, ext);
-      } catch {
-        toast(t().toastConvertFailed, 'error');
-        return;
-      }
+      outBlob = await convertImage(sourceBlob, fmt);
+      ext = extForFormat(fmt, ext);
+    } else {
+      outBlob = await convertImage(sourceBlob, 'png');
+      ext = 'png';
     }
 
-    const finalBlob = new Blob([outBlob], { type: 'application/octet-stream' });
+    if (outBlob.type === 'image/png') outBlob = await addPngMetadata(outBlob, state.username);
 
-    await triggerDownload(finalBlob, `${state.username}-${state.activeTab}.${ext}`);
+    const finalBlob = new Blob([outBlob], { type: 'application/octet-stream' });
+    await triggerDownload(finalBlob, getSafeFilename(state.username, asset.displayMode || 'original', ext));
     toast(t().toastDownloaded);
   } catch {
     toast(t().toastDownloadFailed, 'error');
@@ -832,10 +910,10 @@ async function handleCopyImage() {
     let blob = sourceBlob;
     if (currentFormat !== 'original') {
       blob = await convertImage(sourceBlob, currentFormat);
+    } else {
+      blob = await convertImage(sourceBlob, 'png');
     }
-    if (blob.type !== 'image/png' && currentFormat === 'original') {
-      blob = await convertImage(blob, 'png');
-    }
+    if (blob.type !== 'image/png') blob = await convertImage(blob, 'png');
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
     toast(t().toastCopied);
   } catch { toast(t().toastCopyFailed, 'error'); }
