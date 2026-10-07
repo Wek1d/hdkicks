@@ -287,6 +287,15 @@ button.go:disabled{background:var(--disabled-bg);color:var(--disabled-fg);cursor
 }
 .specs .badge.muted{background:transparent;color:var(--muted-2);border:1px solid var(--line)}
 
+.mode-switch{display:flex;gap:6px;margin:10px 0 12px;}
+.mode-btn{
+    flex:1;border:1px solid var(--line-2);background:transparent;color:var(--muted);
+    border-radius:9px;padding:8px 10px;font-size:11px;font-weight:700;cursor:pointer;
+    transition:border-color .18s,color .18s,background .18s;
+}
+.mode-btn.active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent);}
+.mode-btn:hover{border-color:var(--accent);color:var(--text)}
+
 .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 
 .dl-group{

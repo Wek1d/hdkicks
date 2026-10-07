@@ -62,11 +62,17 @@ const dict = {
     retryBtn: 'Yeniden dene',
     preparing: 'hazırlanıyor…',
     downloadBtn: 'İndir',
+    enhanceBtn: 'Yükselt',
+    enhancePreparing: 'yükseltiliyor…',
     openBtn: 'Tam boy',
     copyImgBtn: 'Görseli kopyala',
     copyLinkBtn: 'Linki kopyala',
     shareBtn: 'Paylaş',
     qrTitle: 'Bu sonucu paylaş',
+    toastUpscaled: 'Görsel yükseltildi',
+    toastEnhanceFailed: 'Yükseltme başarısız',
+    viewOriginal: 'Orijinal',
+    viewEnhanced: 'Yükseltilmiş',
     tabAvatar: 'Avatar',
     tabBanner: 'Banner',
     kickOpenBtn: "Kick'te aç",
@@ -118,11 +124,17 @@ const dict = {
     retryBtn: 'Retry',
     preparing: 'preparing…',
     downloadBtn: 'Download',
+    enhanceBtn: 'Upscale',
+    enhancePreparing: 'upscaling…',
     openBtn: 'Full size',
     copyImgBtn: 'Copy image',
     copyLinkBtn: 'Copy link',
     shareBtn: 'Share',
     qrTitle: 'Share this result',
+    toastUpscaled: 'Image enhanced',
+    toastEnhanceFailed: 'Upscale failed',
+    viewOriginal: 'Original',
+    viewEnhanced: 'Upscaled',
     tabAvatar: 'Avatar',
     tabBanner: 'Banner',
     kickOpenBtn: 'Open on Kick',
@@ -186,6 +198,7 @@ const previewFrame = $('preview-frame');
 const previewImg = $('preview-img');
 const resultUsername = $('result-username');
 const resultSpecs = $('result-specs');
+const modeSwitch = $('mode-switch');
 const downloadBtn = $('download-btn');
 const formatTrigger = $('format-trigger');
 const formatMenu = $('format-menu');
@@ -252,6 +265,9 @@ formatMenu.querySelectorAll('li').forEach(li => {
     try { localStorage.setItem(FORMAT_KEY, currentFormat); } catch {}
     updateFormatUI();
     closeFormatMenu();
+    if (state.assets.avatar || state.assets.banner) {
+      renderPreview();
+    }
   });
 });
 document.addEventListener('click', (e) => {
@@ -285,12 +301,22 @@ function applyStaticText() {
   retryBtn.textContent = d.retryBtn;
   tabAvatar.textContent = d.tabAvatar;
   tabBanner.textContent = d.tabBanner;
+  const originalBtn = modeSwitch && modeSwitch.querySelector('[data-mode="original"]');
+  const enhancedBtn = modeSwitch && modeSwitch.querySelector('[data-mode="enhanced"]');
+  if (originalBtn) originalBtn.textContent = d.viewOriginal;
+  if (enhancedBtn) enhancedBtn.textContent = d.viewEnhanced;
   kickOpenText.textContent = d.kickOpenBtn;
   kickOpenBtn.setAttribute('aria-label', `${d.kickOpenBtn} — kick.com/${state.username || ''}`);
   historyLabel.textContent = d.historyLabel;
   historyClear.textContent = d.historyClear;
   qrTitle.textContent = d.qrTitle;
   if (!downloadBtn.dataset.busy) downloadBtn.textContent = d.downloadBtn;
+  if (modeSwitch) {
+    const originalBtn = modeSwitch.querySelector('[data-mode="original"]');
+    const enhancedBtn = modeSwitch.querySelector('[data-mode="enhanced"]');
+    if (originalBtn) originalBtn.textContent = d.viewOriginal;
+    if (enhancedBtn) enhancedBtn.textContent = d.viewEnhanced;
+  }
   document.querySelectorAll('.lang-pill button').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.lang === lang);
   });
@@ -470,26 +496,92 @@ function stripResizeParams(url) {
     return u.toString().replace(/\?$/, '');
   } catch { return url.split('?')[0]; }
 }
-function generateVariants(url) {
-  if (!url) return [];
-  const noQuery = stripResizeParams(url);
-  const variants = new Set();
-  variants.add(noQuery);
-  variants.add(url);
-  const suffixRx = /-(thumb|small|medium|large)(\.[a-z0-9]{2,5})$/i;
-  if (suffixRx.test(noQuery)) {
-    variants.add(noQuery.replace(suffixRx, '$2'));
-    variants.add(noQuery.replace(suffixRx, '-fullsize$2'));
-    variants.add(noQuery.replace(suffixRx, '-original$2'));
-    variants.add(noQuery.replace(suffixRx, '-large$2'));
+function extractStructuredImageUrls(input) {
+  const seen = new Set();
+  const add = (value) => {
+    if (!value || typeof value !== 'string') return;
+    const clean = value.trim();
+    if (!clean || clean.startsWith('data:')) return;
+    try {
+      const normalized = stripResizeParams(clean);
+      if (normalized) seen.add(normalized);
+    } catch { seen.add(clean); }
+  };
+
+  if (Array.isArray(input)) {
+    input.forEach(add);
+    return [...seen];
   }
-  const prefixRx = /\/(thumb|small|medium|large)-/i;
-  if (prefixRx.test(noQuery)) {
-    variants.add(noQuery.replace(prefixRx, '/'));
-    variants.add(noQuery.replace(prefixRx, '/fullsize-'));
-    variants.add(noQuery.replace(prefixRx, '/original-'));
+
+  if (typeof input === 'string') {
+    add(input);
+    return [...seen];
   }
-  return [...variants];
+
+  if (!input || typeof input !== 'object') return [...seen];
+
+  for (const key of ['url', 'src', 'image_url', 'original', 'fullsize', 'large', 'medium', 'small', 'thumbnail', 'cdn_url']) {
+    add(input[key]);
+  }
+
+  if (Array.isArray(input.responsive_urls)) {
+    input.responsive_urls.forEach(add);
+  }
+  if (Array.isArray(input.images)) {
+    input.images.forEach((item) => {
+      extractStructuredImageUrls(item).forEach((u) => seen.add(u));
+    });
+  }
+
+  const srcsetStrings = [input.srcset, input.responsive];
+  for (const srcset of srcsetStrings) {
+    if (typeof srcset !== 'string') continue;
+    for (const match of srcset.matchAll(/https?:\/\/[^\s,]+/gi)) {
+      add(match[0]);
+    }
+  }
+
+  return [...seen];
+}
+function generateVariants(rawInput) {
+  const directCandidates = extractStructuredImageUrls(rawInput);
+  const variants = new Set(directCandidates);
+
+  for (const source of directCandidates) {
+    if (!source) continue;
+    const normalized = stripResizeParams(source);
+    variants.add(normalized);
+    variants.add(source);
+
+    const suffixRx = /-(thumb|small|medium|large|fullsize|original)(\.[a-z0-9]{2,5})$/i;
+    if (suffixRx.test(normalized)) {
+      variants.add(normalized.replace(suffixRx, '$2'));
+      variants.add(normalized.replace(suffixRx, '-fullsize$2'));
+      variants.add(normalized.replace(suffixRx, '-original$2'));
+      variants.add(normalized.replace(suffixRx, '-large$2'));
+    }
+
+    const prefixRx = /\/(thumb|small|medium|large)-/i;
+    if (prefixRx.test(normalized)) {
+      variants.add(normalized.replace(prefixRx, '/'));
+      variants.add(normalized.replace(prefixRx, '/fullsize-'));
+      variants.add(normalized.replace(prefixRx, '/original-'));
+    }
+
+    if (/\/conversion\//i.test(normalized)) {
+      const match = normalized.match(/^(.*-)(fullsize|original)(\.[a-z0-9]+)$/i);
+      if (match) {
+        variants.add(match[1] + 'original' + match[3]);
+        variants.add(match[1] + 'fullsize' + match[3]);
+      }
+      const pngAlt = normalized.replace(/\.[a-z0-9]+$/i, '.png');
+      const webpAlt = normalized.replace(/\.[a-z0-9]+$/i, '.webp');
+      if (pngAlt !== normalized) variants.add(pngAlt);
+      if (webpAlt !== normalized) variants.add(webpAlt);
+    }
+  }
+
+  return [...variants].filter(Boolean);
 }
 function loadImageDims(src, timeout = 6000) {
   return new Promise((resolve) => {
@@ -503,8 +595,9 @@ function loadImageDims(src, timeout = 6000) {
   });
 }
 const variantLimiter = createLimiter(4);
-async function pickBestVariant(originalUrl) {
-  const variants = generateVariants(originalUrl);
+async function pickBestVariant(rawInput) {
+  const variants = generateVariants(rawInput);
+  const fallbackUrl = typeof rawInput === 'string' ? rawInput : rawInput && (rawInput.url || rawInput.src || rawInput.image_url || '');
   const results = await Promise.all(
     variants.map(url => variantLimiter(async () => {
       const dims = await loadImageDims(url);
@@ -514,8 +607,8 @@ async function pickBestVariant(originalUrl) {
   );
   const valid = results.filter(Boolean).sort((a, b) => b.area - a.area);
   const winner = valid[0];
-  if (!winner) return { url: originalUrl, w: 0, h: 0, isHighest: false };
-  return { ...winner, isHighest: winner.url !== originalUrl };
+  if (!winner) return { url: fallbackUrl, w: 0, h: 0, isHighest: false };
+  return { ...winner, isHighest: winner.url !== fallbackUrl };
 }
 
 /* ---------- Blob fetch + cache ---------- */
@@ -624,7 +717,48 @@ function extForFormat(fmt, fallback) {
   if (fmt === 'webp') return 'webp';
   return fallback || 'webp';
 }
-
+function upscaleBlob(blob, scale = 2) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(blob);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        reject(new Error('canvas not available'));
+        return;
+      }
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.filter = 'contrast(1.08) saturate(1.15) brightness(1.02)';
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((out) => {
+        if (!out) { reject(new Error('upscale failed')); return; }
+        resolve(out);
+      }, 'image/png');
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('upscale source failed')); };
+    img.src = url;
+  });
+}
+async function ensureEnhancedAsset(asset) {
+  if (asset.enhanced && asset.enhanced.url) return asset.enhanced;
+  const blob = await ensureBlob(asset);
+  const enhanced = await upscaleBlob(blob, 2);
+  const previewUrl = URL.createObjectURL(enhanced);
+  asset.enhanced = {
+    url: previewUrl,
+    blob: enhanced,
+    w: Math.round((asset.w || 0) * 2),
+    h: Math.round((asset.h || 0) * 2),
+    size: enhanced.size,
+    ext: 'png',
+  };
+  return asset.enhanced;
+}
 /* ---------- Download ---------- */
 /* Not: Firefox, belirli görsel türlerini (özellikle webp) blob: URL üzerinden
    `download` özniteliğiyle indirirken, dosyayı diske kaydetmenin yanında
@@ -658,14 +792,14 @@ async function handleDownload() {
   const originalLabel = downloadBtn.textContent;
   downloadBtn.textContent = t().preparing;
   try {
-    const blob = await ensureBlob(asset);
+    const sourceBlob = asset.displayMode === 'enhanced' && asset.enhanced ? asset.enhanced.blob : await ensureBlob(asset);
     const fmt = currentFormat;
-    let outBlob = blob;
-    let ext = asset.ext || extFromUrl(asset.url);
+    let outBlob = sourceBlob;
+    let ext = asset.displayMode === 'enhanced' ? 'png' : (asset.ext || extFromUrl(asset.url));
 
     if (fmt !== 'original') {
       try {
-        outBlob = await convertImage(blob, fmt);
+        outBlob = await convertImage(sourceBlob, fmt);
         ext = extForFormat(fmt, ext);
       } catch {
         toast(t().toastConvertFailed, 'error');
@@ -694,8 +828,14 @@ async function handleCopyImage() {
   if (!asset) return;
   try {
     if (!navigator.clipboard || !window.ClipboardItem) throw new Error('unsupported');
-    let blob = await ensureBlob(asset);
-    if (blob.type !== 'image/png') blob = await convertImage(blob, 'png');
+    const sourceBlob = asset.displayMode === 'enhanced' && asset.enhanced ? asset.enhanced.blob : await ensureBlob(asset);
+    let blob = sourceBlob;
+    if (currentFormat !== 'original') {
+      blob = await convertImage(sourceBlob, currentFormat);
+    }
+    if (blob.type !== 'image/png' && currentFormat === 'original') {
+      blob = await convertImage(blob, 'png');
+    }
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
     toast(t().toastCopied);
   } catch { toast(t().toastCopyFailed, 'error'); }
@@ -783,11 +923,13 @@ tabBanner.addEventListener('click', () => setActiveTab('banner'));
 function renderPreview() {
   const asset = state.assets[state.activeTab];
   if (!asset) return;
+  const selectedView = asset.displayMode === 'enhanced' && asset.enhanced ? asset.enhanced : null;
+  const currentUrl = selectedView ? selectedView.url : asset.url;
   previewFrame.classList.remove('loaded');
   previewImg.classList.remove('loaded');
   previewImg.removeAttribute('srcset');
-  previewImg.src = asset.url;
-  previewImg.srcset = `${asset.url} 1x, ${asset.url} 2x`;
+  previewImg.src = currentUrl;
+  previewImg.srcset = `${currentUrl} 1x, ${currentUrl} 2x`;
   previewImg.onload = () => {
     previewImg.classList.add('loaded');
     previewFrame.classList.add('loaded');
@@ -796,22 +938,53 @@ function renderPreview() {
     previewImg.classList.add('loaded');
     previewFrame.classList.add('loaded');
   }
+  if (modeSwitch) {
+    modeSwitch.hidden = !asset.enhanced;
+    modeSwitch.querySelectorAll('.mode-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.mode === (asset.displayMode || 'original'));
+    });
+  }
   renderSpecs();
 }
-function renderSpecs() {
+async function getOutputMeta(asset) {
+  const sourceBlob = asset.displayMode === 'enhanced' && asset.enhanced ? asset.enhanced.blob : await ensureBlob(asset);
+  let outputBlob = sourceBlob;
+  let ext = asset.displayMode === 'enhanced' ? 'png' : (asset.ext || extFromUrl(asset.url));
+  let size = sourceBlob.size;
+  let w = asset.displayMode === 'enhanced' && asset.enhanced ? asset.enhanced.w : asset.w;
+  let h = asset.displayMode === 'enhanced' && asset.enhanced ? asset.enhanced.h : asset.h;
+
+  if (currentFormat !== 'original') {
+    try {
+      outputBlob = await convertImage(sourceBlob, currentFormat);
+      size = outputBlob.size;
+      ext = extForFormat(currentFormat, ext);
+    } catch {}
+  }
+
+  if (asset.displayMode === 'enhanced' && currentFormat === 'original') {
+    ext = 'png';
+    size = sourceBlob.size;
+  }
+
+  return { w, h, size, ext };
+}
+async function renderSpecs() {
   const asset = state.assets[state.activeTab];
   if (!asset) { resultSpecs.textContent = ''; return; }
-  const parts = [];
-  if (asset.w && asset.h) parts.push(`${asset.w} × ${asset.h}px`);
-  else parts.push(t().original);
-  const ext = (asset.ext || extFromUrl(asset.url)).toUpperCase();
-  parts.push(ext);
-  if (asset.size) parts.push(formatBytes(asset.size));
-  const html = parts.map(p => `<span>${p}</span>`).join('<span class="sep">·</span>');
-  const badge = asset.isHighest
-    ? `<span class="badge">${t().qualityHighest}</span>`
-    : `<span class="badge muted">${t().qualitySource}</span>`;
-  resultSpecs.innerHTML = html + `<span class="sep">·</span>` + badge;
+  try {
+    const meta = await getOutputMeta(asset);
+    const parts = [];
+    if (meta.w && meta.h) parts.push(`${meta.w} × ${meta.h}px`);
+    else parts.push(t().original);
+    parts.push((meta.ext || 'WEBP').toUpperCase());
+    if (meta.size) parts.push(formatBytes(meta.size));
+    const html = parts.map(p => `<span>${p}</span>`).join('<span class="sep">·</span>');
+    const badgeText = asset.displayMode === 'enhanced' ? t().viewEnhanced : t().viewOriginal;
+    resultSpecs.innerHTML = html + `<span class="sep">·</span><span class="badge">${badgeText}</span>`;
+  } catch {
+    resultSpecs.textContent = '';
+  }
 }
 
 /* ---------- Lightbox ---------- */
@@ -956,7 +1129,7 @@ async function run(rawInput) {
       state.assets.avatar = {
         url: avatarBest.url, w: avatarBest.w, h: avatarBest.h,
         isHighest: avatarBest.isHighest, ext: extFromUrl(avatarBest.url),
-        size: null, blob: null,
+        size: null, blob: null, displayMode: 'original',
       };
 
       const bannerUrl =
@@ -968,7 +1141,7 @@ async function run(rawInput) {
         state.assets.banner = {
           url: bannerBest.url, w: bannerBest.w, h: bannerBest.h,
           isHighest: bannerBest.isHighest, ext: extFromUrl(bannerBest.url),
-          size: null, blob: null,
+          size: null, blob: null, displayMode: 'original',
         };
         resultTabs.hidden = false;
       } else {
@@ -1021,13 +1194,31 @@ retryBtn.addEventListener('click', () => {
   }
 });
 downloadBtn.addEventListener('click', handleDownload);
+modeSwitch && modeSwitch.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.mode-btn');
+  if (!btn) return;
+  const asset = state.assets[state.activeTab];
+  if (!asset) return;
+  const nextMode = btn.dataset.mode === 'enhanced' ? 'enhanced' : 'original';
+  if (nextMode === 'enhanced') {
+    await ensureEnhancedAsset(asset);
+  }
+  asset.displayMode = nextMode;
+  renderPreview();
+});
 openBtn.addEventListener('click', () => {
   const asset = getActiveAsset();
-  if (asset) openLightbox(asset.url);
+  if (asset) {
+    const current = asset.displayMode === 'enhanced' && asset.enhanced ? asset.enhanced : asset;
+    openLightbox(current.url || asset.url);
+  }
 });
 previewFrame.addEventListener('click', () => {
   const asset = getActiveAsset();
-  if (asset) openLightbox(asset.url);
+  if (asset) {
+    const current = asset.displayMode === 'enhanced' && asset.enhanced ? asset.enhanced : asset;
+    openLightbox(current.url || asset.url);
+  }
 });
 copyImgBtn.addEventListener('click', handleCopyImage);
 copyLinkBtn.addEventListener('click', handleCopyLink);
