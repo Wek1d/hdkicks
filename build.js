@@ -1,12 +1,4 @@
 #!/usr/bin/env node
-/**
- * build.js
- * Kök dizindeki kaynak dosyaları okur, JS/CSS/HTML'i minify + yorumsuz
- * hale getirip /docs klasörüne yazar. GitHub Pages Settings'te
- * "Branch: main /docs" seçili olduğu sürece deploy için bu klasör kullanılır.
- *
- * Kullanım:  npm run build
- */
 const fs = require('fs');
 const path = require('path');
 const { minify: minifyJs } = require('terser');
@@ -16,11 +8,9 @@ const { execSync } = require('child_process');
 const ROOT = __dirname;
 const OUT = path.join(ROOT, 'docs');
 
-// Doğrudan kopyalanacak (minify gerektirmeyen) dosya/klasörler
 const COPY_AS_IS = [
   'icon.png',
   'robots.txt',
-  'sitemap.xml',
   '.nojekyll',
 ];
 
@@ -38,7 +28,6 @@ function copyAsIs() {
     fs.copyFileSync(src, path.join(OUT, name));
     log(`kopyalandı: ${name}`);
   }
-  // Google Search Console doğrulama dosyası (adı değişken, google*.html)
   for (const f of fs.readdirSync(ROOT)) {
     if (/^google[0-9a-f]+\.html$/i.test(f)) {
       fs.copyFileSync(path.join(ROOT, f), path.join(OUT, f));
@@ -73,11 +62,26 @@ async function buildHtml() {
     collapseWhitespace: true,
     removeComments: true,
     minifyCSS: true,
-    minifyJS: false, // app.js zaten ayrı minify ediliyor, inline script'i bozmasın
+    minifyJS: false,
     removeAttributeQuotes: false,
   });
   fs.writeFileSync(path.join(OUT, 'index.html'), result);
   log(`index.html minify edildi`);
+}
+
+function buildSitemap() {
+  const today = new Date().toISOString().split('T')[0];
+  const sitemapContent = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://wek1d.github.io/hdkicks/</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>`;
+  fs.writeFileSync(path.join(OUT, 'sitemap.xml'), sitemapContent);
+  log(`sitemap.xml üretildi (lastmod: ${today})`);
 }
 
 (async () => {
@@ -87,7 +91,8 @@ async function buildHtml() {
     await buildCss();
     await buildJs();
     await buildHtml();
-    log('Bitti ✅  →  /docs güncellendi. Şimdi commit + push yapabilirsin.');
+    buildSitemap();
+    log('Bitti ✅  →  /docs güncellendi.');
   } catch (err) {
     console.error('[build] HATA:', err);
     process.exit(1);
