@@ -138,11 +138,21 @@
                     <span class="zoom-tag" id="zoom-tag"></span>
                 </div>
                 <div class="result-meta">
-                    <p class="handle" id="result-username"></p>
+                    <div class="handle-row">
+                        <p class="handle" id="result-username"></p>
+                        <span class="verified-badge" id="verified-badge" role="img" hidden>
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <g fill="#53fc18"><rect x="4" y="4" width="16" height="16" rx="4.5"/><rect x="4" y="4" width="16" height="16" rx="4.5" transform="rotate(45 12 12)"/></g>
+                                <path d="M8 12.4l2.7 2.7L16.2 9.4" fill="none" stroke="#0b1206" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </span>
+                    </div>
+                    <p class="followers" id="result-followers" hidden></p>
                     <p class="specs" id="result-specs"></p>
-                    <div class="mode-switch" id="mode-switch" hidden>
+                    <div class="mode-switch" id="mode-switch" role="group">
                         <button class="mode-btn active" data-mode="original" type="button"></button>
-                        <button class="mode-btn" data-mode="enhanced" type="button"></button>
+                        <button class="mode-btn" data-mode="clean" type="button"></button>
+                        <button class="mode-btn" data-mode="strong" type="button"></button>
                     </div>
                     <div class="actions">
                         <div class="dl-group">

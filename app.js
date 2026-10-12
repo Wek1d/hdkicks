@@ -19,13 +19,13 @@ function createLimiter(max) {
     });
   };
 }
-async function retry(fn, { retries = 2, minTimeout = 600, factor = 2 } = {}) {
+async function retry(fn, { retries = 2, minTimeout = 600, factor = 2, shouldRetry = () => true } = {}) {
   let lastErr;
   for (let i = 0; i <= retries; i++) {
     try { return await fn(i); }
     catch (e) {
       lastErr = e;
-      if (i === retries) break;
+      if (i === retries || !shouldRetry(e)) break;
       await new Promise(r => setTimeout(r, minTimeout * Math.pow(factor, i)));
     }
   }
@@ -73,6 +73,14 @@ const dict = {
     toastEnhanceFailed: 'Yükseltme başarısız',
     viewOriginal: 'Orijinal',
     viewEnhanced: 'Yükseltilmiş',
+    viewClean: 'Sade ×2',
+    viewStrong: 'Güçlü ×4',
+    hintOriginal: 'Kick’teki dosya, dokunulmadan',
+    hintClean: 'Sadece büyütür, renklere dokunmaz',
+    hintStrong: 'Büyütür ve detayı keskinleştirir',
+    upscaling: 'yükseltiliyor…',
+    followersLabel: 'takipçi',
+    verifiedLabel: 'Doğrulanmış yayıncı',
     tabAvatar: 'Avatar',
     tabBanner: 'Banner',
     kickOpenBtn: "Kick'te aç",
@@ -135,6 +143,14 @@ const dict = {
     toastEnhanceFailed: 'Upscale failed',
     viewOriginal: 'Original',
     viewEnhanced: 'Upscaled',
+    viewClean: 'Clean ×2',
+    viewStrong: 'Strong ×4',
+    hintOriginal: 'The file on Kick, untouched',
+    hintClean: 'Upscale only, colors untouched',
+    hintStrong: 'Upscale plus detail sharpening',
+    upscaling: 'upscaling…',
+    followersLabel: 'followers',
+    verifiedLabel: 'Verified streamer',
     tabAvatar: 'Avatar',
     tabBanner: 'Banner',
     kickOpenBtn: 'Open on Kick',
@@ -180,6 +196,8 @@ let lastErrorState = null;
 let currentFormat = 'original';
 const state = {
   username: '',
+  slug: '',
+  channel: { followers: null, verified: false },
   activeTab: 'avatar',
   assets: { avatar: null, banner: null },
 };
@@ -198,6 +216,8 @@ const previewFrame = $('preview-frame');
 const previewImg = $('preview-img');
 const resultUsername = $('result-username');
 const resultSpecs = $('result-specs');
+const resultFollowers = $('result-followers');
+const verifiedBadge = $('verified-badge');
 const modeSwitch = $('mode-switch');
 const downloadBtn = $('download-btn');
 const formatTrigger = $('format-trigger');
@@ -278,6 +298,46 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && formatMenu.classList.contains('open')) closeFormatMenu();
 });
 
+/* ---------- Mode switch labels + channel meta ---------- */
+function applyModeLabels() {
+  if (!modeSwitch) return;
+  const d = t();
+  const map = {
+    original: [d.viewOriginal, d.hintOriginal],
+    clean: [d.viewClean, d.hintClean],
+    strong: [d.viewStrong, d.hintStrong],
+  };
+  modeSwitch.querySelectorAll('.mode-btn').forEach((btn) => {
+    const entry = map[btn.dataset.mode];
+    if (!entry) return;
+    btn.textContent = entry[0];
+    btn.title = entry[1];
+  });
+}
+function pickFollowers(data) {
+  const candidates = [
+    data.followers_count, data.followersCount,
+    data.user && data.user.followers_count, data.user && data.user.followersCount,
+  ];
+  for (const v of candidates) {
+    if (v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v))) return Number(v);
+  }
+  return null;
+}
+function renderChannelMeta() {
+  const ch = state.channel;
+  const d = t();
+  verifiedBadge.hidden = !ch.verified;
+  verifiedBadge.title = d.verifiedLabel;
+  verifiedBadge.setAttribute('aria-label', d.verifiedLabel);
+  if (ch.followers === null) { resultFollowers.hidden = true; return; }
+  const compact = new Intl.NumberFormat(lang, { notation: 'compact', maximumFractionDigits: 1 }).format(ch.followers);
+  const full = new Intl.NumberFormat(lang).format(ch.followers);
+  resultFollowers.hidden = false;
+  resultFollowers.title = `${full} ${d.followersLabel}`;
+  resultFollowers.innerHTML = `<b>${compact}</b> ${d.followersLabel}`;
+}
+
 /* ---------- i18n apply ---------- */
 function applyStaticText() {
   const d = t();
@@ -301,28 +361,19 @@ function applyStaticText() {
   retryBtn.textContent = d.retryBtn;
   tabAvatar.textContent = d.tabAvatar;
   tabBanner.textContent = d.tabBanner;
-  const originalBtn = modeSwitch && modeSwitch.querySelector('[data-mode="original"]');
-  const enhancedBtn = modeSwitch && modeSwitch.querySelector('[data-mode="enhanced"]');
-  if (originalBtn) originalBtn.textContent = d.viewOriginal;
-  if (enhancedBtn) enhancedBtn.textContent = d.viewEnhanced;
+  applyModeLabels();
   kickOpenText.textContent = d.kickOpenBtn;
-  kickOpenBtn.setAttribute('aria-label', `${d.kickOpenBtn} — kick.com/${state.username || ''}`);
+  kickOpenBtn.setAttribute('aria-label', `${d.kickOpenBtn} — kick.com/${state.slug || state.username || ''}`);
   historyLabel.textContent = d.historyLabel;
   historyClear.textContent = d.historyClear;
   qrTitle.textContent = d.qrTitle;
   if (!downloadBtn.dataset.busy) downloadBtn.textContent = d.downloadBtn;
-  if (modeSwitch) {
-    const originalBtn = modeSwitch.querySelector('[data-mode="original"]');
-    const enhancedBtn = modeSwitch.querySelector('[data-mode="enhanced"]');
-    if (originalBtn) originalBtn.textContent = d.viewOriginal;
-    if (enhancedBtn) enhancedBtn.textContent = d.viewEnhanced;
-  }
   document.querySelectorAll('.lang-pill button').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.lang === lang);
   });
   updateFormatUI();
   if (lastErrorState) renderError(lastErrorState.type, lastErrorState.username);
-  if (state.assets.avatar) renderSpecs();
+  if (state.assets.avatar) { renderSpecs(); renderChannelMeta(); }
 }
 function setLang(next) { lang = next; storeLang(next); applyStaticText(); }
 document.querySelectorAll('.lang-pill button').forEach(btn => {
@@ -457,7 +508,7 @@ async function fetchWithProxies(url, isJson) {
   for (const proxy of orderedProxies()) {
     try {
       const res = await fetch(proxy.build(url), { headers: isJson ? { Accept: 'application/json' } : {} });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
+      if (!res.ok && res.status !== 404 && res.status !== 429) throw new Error('HTTP ' + res.status);
       setPreferredProxy(proxy.id);
       return res;
     } catch (e) { lastErr = e; }
@@ -485,6 +536,28 @@ async function fetchChannel(username) {
     if (e && e.type) throw e;
     throw makeErr('network');
   }
+}
+
+/* Kick'te kanal linki (slug) '-' kullanır, kullanıcı adı ise '_' içerebilir
+   (arda_kececi → kick.com/arda-kececi). Bulunamazsa ayracın tersini dene. */
+function usernameCandidates(username) {
+  const list = [username];
+  if (/[-_]/.test(username)) {
+    list.push(username.replace(/_/g, '-'), username.replace(/-/g, '_'));
+  }
+  return [...new Set(list)];
+}
+async function fetchChannelSmart(username) {
+  let lastErr;
+  for (const candidate of usernameCandidates(username)) {
+    try {
+      return { data: await fetchChannel(candidate), slug: candidate };
+    } catch (e) {
+      lastErr = e;
+      if (!(e && e.type === 'notFound')) throw e;
+    }
+  }
+  throw lastErr;
 }
 
 /* ---------- Variants ---------- */
@@ -596,7 +669,9 @@ function loadImageDims(src, timeout = 6000) {
 }
 const variantLimiter = createLimiter(4);
 async function pickBestVariant(rawInput) {
-  const variants = generateVariants(rawInput);
+  const direct = extractStructuredImageUrls(rawInput);
+  const alreadyTopTier = direct.length === 1 && /-(fullsize|original)\.[a-z0-9]{2,5}$/i.test(direct[0]);
+  const variants = alreadyTopTier ? direct : generateVariants(rawInput);
   const fallbackUrl = typeof rawInput === 'string' ? rawInput : rawInput && (rawInput.url || rawInput.src || rawInput.image_url || '');
   const results = await Promise.all(
     variants.map(url => variantLimiter(async () => {
@@ -613,17 +688,29 @@ async function pickBestVariant(rawInput) {
 
 /* ---------- Blob fetch + cache ---------- */
 const blobCache = new Map();
-async function isImageBlob(blob) {
-  if (!blob || blob.size < 12) return false;
+async function sniffImage(blob) {
+  if (!blob || blob.size < 12) return null;
   try {
-    const buf = new Uint8Array(await blob.slice(0, 12).arrayBuffer());
-    if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return true;
-    if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return true;
-    if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46) return true;
-    if (buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46) return true;
-    if (buf[4] === 0x66 && buf[5] === 0x74 && buf[6] === 0x79 && buf[7] === 0x70) return true;
-    return false;
-  } catch { return false; }
+    const b = new Uint8Array(await blob.slice(0, 12).arrayBuffer());
+    const ascii = (s, e) => String.fromCharCode(...b.slice(s, e));
+    if (b[0] === 0xFF && b[1] === 0xD8 && b[2] === 0xFF) return 'image/jpeg';
+    if (b[0] === 0x89 && ascii(1, 4) === 'PNG') return 'image/png';
+    if (ascii(0, 3) === 'GIF') return 'image/gif';
+    if (ascii(0, 4) === 'RIFF' && ascii(8, 12) === 'WEBP') return 'image/webp';
+    if (ascii(4, 8) === 'ftyp') {
+      const brand = ascii(8, 12);
+      if (brand === 'avif' || brand === 'avis') return 'image/avif';
+      if (brand.startsWith('he')) return 'image/heic';
+    }
+    return null;
+  } catch { return null; }
+}
+/* MIME tipi gerçek baytlardan belirlenir; proxy'ler yanlış Content-Type
+   döndürebildiği için blob.type'a güvenmiyoruz. */
+async function normalizeImageBlob(b) {
+  const mime = await sniffImage(b);
+  if (!mime) return null;
+  return b.type === mime ? b : new Blob([b], { type: mime });
 }
 async function fetchImageBlob(url) {
   if (blobCache.has(url)) return blobCache.get(url);
@@ -631,16 +718,16 @@ async function fetchImageBlob(url) {
     try {
       const r = await fetch(url, { mode: 'cors' });
       if (r.ok) {
-        const b = await r.blob();
-        if (await isImageBlob(b)) return b;
+        const b = await normalizeImageBlob(await r.blob());
+        if (b) return b;
       }
     } catch {}
     for (const proxy of orderedProxies()) {
       try {
         const r = await fetch(proxy.build(url));
         if (!r.ok) continue;
-        const b = await r.blob();
-        if (await isImageBlob(b)) { setPreferredProxy(proxy.id); return b; }
+        const b = await normalizeImageBlob(await r.blob());
+        if (b) { setPreferredProxy(proxy.id); return b; }
       } catch {}
     }
     throw makeErr('network');
@@ -711,17 +798,21 @@ function extFromUrl(url) {
     return m ? m[1].toLowerCase() : 'webp';
   } catch { return 'webp'; }
 }
+function extFromBlob(blob, fallback) {
+  const map = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp', 'image/gif': 'gif', 'image/avif': 'avif', 'image/heic': 'heic' };
+  return (blob && map[blob.type]) || fallback || 'webp';
+}
 function extForFormat(fmt, fallback) {
   if (fmt === 'png') return 'png';
   if (fmt === 'jpeg') return 'jpg';
   if (fmt === 'webp') return 'webp';
   return fallback || 'webp';
 }
-function getSafeFilename(baseName, mode, format) {
+function getSafeFilename(baseName, mode, ext, tab) {
   const clean = String(baseName || 'kick').toLowerCase().replace(/[^a-z0-9._-]+/gi, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
-  const kind = mode === 'enhanced' ? 'enhanced' : 'original';
-  const ext = format === 'jpeg' ? 'jpg' : (format || 'png');
-  return `${clean}-${kind}.${ext}`;
+  const kind = mode === 'clean' || mode === 'strong' ? mode : 'original';
+  const part = tab === 'banner' ? '-banner' : '';
+  return `${clean}${part}-${kind}.${ext || 'png'}`;
 }
 function pngChunk(type, data) {
   const typeBytes = new TextEncoder().encode(type);
@@ -796,47 +887,195 @@ async function addPngMetadata(blob, username) {
   result.set(bytes.subarray(offset), writeOffset);
   return new Blob([result], { type: 'image/png' });
 }
-function upscaleBlob(blob, scale = 2) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(blob);
-    img.onload = () => {
-      URL.revokeObjectURL(url);
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
-      canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        reject(new Error('canvas not available'));
-        return;
-      }
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = 'high';
-      ctx.filter = 'contrast(1.08) saturate(1.15) brightness(1.02)';
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob((out) => {
-        if (!out) { reject(new Error('upscale failed')); return; }
-        resolve(out);
-      }, 'image/png');
-    };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('upscale source failed')); };
-    img.src = url;
-  });
+/* ---------- Upscale ----------
+   Tarayıcının bilinear büyütmesi yerine Lanczos-3 yeniden örnekleme.
+   - clean : sadece 2× Lanczos. Renk/kontrast filtresi YOK.
+   - strong: 2× → hafif keskinleştirme → 2× → keskinleştirme (kademeli büyütme
+             tek seferde 4×'e göre daha net kenar verir). Keskinleştirme sadece
+             parlaklık (luma) kanalında ve eşikli: cilt gibi düz alanlardaki
+             gürültü büyütülmez, renkler kaymaz. */
+const UPSCALE_PRESETS = {
+  clean: [{ scale: 2 }],
+  strong: [
+    { scale: 2, sharpen: { amount: 0.40, sigma: 0.9, threshold: 3 } },
+    { scale: 2, sharpen: { amount: 0.55, sigma: 1.4, threshold: 4 } },
+  ],
+};
+const MAX_OUTPUT_PIXELS = 16e6;
+const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
+
+function lanczos3(x) {
+  if (x === 0) return 1;
+  if (x <= -3 || x >= 3) return 0;
+  const px = Math.PI * x;
+  return (3 * Math.sin(px) * Math.sin(px / 3)) / (px * px);
 }
-async function ensureEnhancedAsset(asset) {
-  if (asset.enhanced && asset.enhanced.url) return asset.enhanced;
-  const blob = await ensureBlob(asset);
-  const enhanced = await upscaleBlob(blob, 2);
-  const previewUrl = URL.createObjectURL(enhanced);
-  asset.enhanced = {
-    url: previewUrl,
-    blob: enhanced,
-    w: Math.round((asset.w || 0) * 2),
-    h: Math.round((asset.h || 0) * 2),
-    size: enhanced.size,
-    ext: 'png',
-  };
-  return asset.enhanced;
+function buildLanczosWeights(srcLen, dstLen) {
+  const taps = 6;
+  const ratio = dstLen / srcLen;
+  const starts = new Int32Array(dstLen);
+  const weights = new Float32Array(dstLen * taps);
+  for (let i = 0; i < dstLen; i++) {
+    const center = (i + 0.5) / ratio - 0.5;
+    const start = Math.floor(center) - 2;
+    let sum = 0;
+    for (let k = 0; k < taps; k++) {
+      const w = lanczos3(center - (start + k));
+      weights[i * taps + k] = w;
+      sum += w;
+    }
+    for (let k = 0; k < taps; k++) weights[i * taps + k] /= sum;
+    starts[i] = start;
+  }
+  return { starts, weights, taps };
+}
+/* data: premultiplied RGBA Float32Array */
+function resizeLanczos(data, sw, sh, dw, dh) {
+  const hx = buildLanczosWeights(sw, dw);
+  const tmp = new Float32Array(dw * sh * 4);
+  for (let y = 0; y < sh; y++) {
+    const rowIn = y * sw;
+    for (let x = 0; x < dw; x++) {
+      const s = hx.starts[x];
+      let r = 0, g = 0, b = 0, a = 0;
+      for (let k = 0; k < hx.taps; k++) {
+        const sx = Math.min(sw - 1, Math.max(0, s + k));
+        const w = hx.weights[x * hx.taps + k];
+        const i = (rowIn + sx) * 4;
+        r += data[i] * w; g += data[i + 1] * w; b += data[i + 2] * w; a += data[i + 3] * w;
+      }
+      const o = (y * dw + x) * 4;
+      tmp[o] = r; tmp[o + 1] = g; tmp[o + 2] = b; tmp[o + 3] = a;
+    }
+  }
+  const vy = buildLanczosWeights(sh, dh);
+  const out = new Float32Array(dw * dh * 4);
+  for (let y = 0; y < dh; y++) {
+    const s = vy.starts[y];
+    for (let x = 0; x < dw; x++) {
+      let r = 0, g = 0, b = 0, a = 0;
+      for (let k = 0; k < vy.taps; k++) {
+        const sy = Math.min(sh - 1, Math.max(0, s + k));
+        const w = vy.weights[y * vy.taps + k];
+        const i = (sy * dw + x) * 4;
+        r += tmp[i] * w; g += tmp[i + 1] * w; b += tmp[i + 2] * w; a += tmp[i + 3] * w;
+      }
+      const o = (y * dw + x) * 4;
+      const al = Math.min(255, Math.max(0, a));
+      out[o] = Math.min(al, Math.max(0, r));
+      out[o + 1] = Math.min(al, Math.max(0, g));
+      out[o + 2] = Math.min(al, Math.max(0, b));
+      out[o + 3] = al;
+    }
+  }
+  return out;
+}
+function gaussianBlur(src, w, h, sigma) {
+  const r = Math.max(1, Math.ceil(sigma * 3));
+  const kernel = new Float32Array(2 * r + 1);
+  let sum = 0;
+  for (let i = -r; i <= r; i++) { const v = Math.exp(-(i * i) / (2 * sigma * sigma)); kernel[i + r] = v; sum += v; }
+  for (let i = 0; i < kernel.length; i++) kernel[i] /= sum;
+  const tmp = new Float32Array(w * h);
+  const out = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let acc = 0;
+      for (let i = -r; i <= r; i++) acc += src[y * w + Math.min(w - 1, Math.max(0, x + i))] * kernel[i + r];
+      tmp[y * w + x] = acc;
+    }
+  }
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let acc = 0;
+      for (let i = -r; i <= r; i++) acc += tmp[Math.min(h - 1, Math.max(0, y + i)) * w + x] * kernel[i + r];
+      out[y * w + x] = acc;
+    }
+  }
+  return out;
+}
+function sharpenLuma(data, w, h, { amount, sigma, threshold }) {
+  const n = w * h;
+  const luma = new Float32Array(n);
+  for (let i = 0; i < n; i++) luma[i] = 0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
+  const blurred = gaussianBlur(luma, w, h, sigma);
+  for (let i = 0; i < n; i++) {
+    let diff = luma[i] - blurred[i];
+    const ad = Math.abs(diff);
+    if (ad <= threshold) continue;
+    diff = Math.sign(diff) * (ad - threshold);
+    const delta = Math.max(-40, Math.min(40, diff * amount));
+    const a = data[i * 4 + 3];
+    const o = i * 4;
+    data[o] = Math.min(a, Math.max(0, data[o] + delta));
+    data[o + 1] = Math.min(a, Math.max(0, data[o + 1] + delta));
+    data[o + 2] = Math.min(a, Math.max(0, data[o + 2] + delta));
+  }
+}
+async function upscaleBlob(blob, mode) {
+  const stages = UPSCALE_PRESETS[mode];
+  if (!stages) throw new Error('unknown mode');
+  const img = await blobToImage(blob);
+  let w = img.naturalWidth, h = img.naturalHeight;
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) throw new Error('canvas not available');
+  ctx.drawImage(img, 0, 0);
+  const px = ctx.getImageData(0, 0, w, h).data;
+  let data = new Float32Array(w * h * 4);
+  for (let i = 0; i < w * h; i++) {
+    const a = px[i * 4 + 3] / 255;
+    data[i * 4] = px[i * 4] * a;
+    data[i * 4 + 1] = px[i * 4 + 1] * a;
+    data[i * 4 + 2] = px[i * 4 + 2] * a;
+    data[i * 4 + 3] = px[i * 4 + 3];
+  }
+  let ran = 0;
+  for (const stage of stages) {
+    const dw = Math.round(w * stage.scale), dh = Math.round(h * stage.scale);
+    if (dw * dh > MAX_OUTPUT_PIXELS) break;
+    await nextFrame();
+    data = resizeLanczos(data, w, h, dw, dh);
+    w = dw; h = dh;
+    if (stage.sharpen) sharpenLuma(data, w, h, stage.sharpen);
+    ran++;
+  }
+  if (!ran) throw new Error('image too large to upscale');
+  const outData = new Uint8ClampedArray(w * h * 4);
+  for (let i = 0; i < w * h; i++) {
+    const a = data[i * 4 + 3];
+    const f = a > 0 ? 255 / a : 0;
+    outData[i * 4] = data[i * 4] * f;
+    outData[i * 4 + 1] = data[i * 4 + 1] * f;
+    outData[i * 4 + 2] = data[i * 4 + 2] * f;
+    outData[i * 4 + 3] = a;
+  }
+  const outCanvas = document.createElement('canvas');
+  outCanvas.width = w; outCanvas.height = h;
+  outCanvas.getContext('2d').putImageData(new ImageData(outData, w, h), 0, 0);
+  const out = await new Promise((resolve, reject) =>
+    outCanvas.toBlob((b) => (b ? resolve(b) : reject(new Error('upscale failed'))), 'image/png'));
+  return { blob: out, w, h };
+}
+async function ensureVariant(asset, mode) {
+  asset.variants = asset.variants || {};
+  if (asset.variants[mode]) return asset.variants[mode];
+  const source = await ensureBlob(asset);
+  const r = await upscaleBlob(source, mode);
+  asset.variants[mode] = { url: URL.createObjectURL(r.blob), blob: r.blob, w: r.w, h: r.h, size: r.blob.size };
+  return asset.variants[mode];
+}
+/* Aktif görünüm: orijinal dosya ya da yükseltilmiş varyant */
+function getView(asset) {
+  const mode = asset.displayMode || 'original';
+  const v = mode !== 'original' && asset.variants && asset.variants[mode];
+  if (v) return { mode, url: v.url, blob: v.blob, w: v.w, h: v.h, ext: 'png' };
+  return { mode: 'original', url: asset.url, blob: asset.blob, w: asset.w, h: asset.h, ext: asset.ext || extFromUrl(asset.url) };
+}
+async function getViewBlob(asset) {
+  const view = getView(asset);
+  return view.blob || ensureBlob(asset);
 }
 /* ---------- Download ---------- */
 /* Not: Firefox, belirli görsel türlerini (özellikle webp) blob: URL üzerinden
@@ -871,23 +1110,21 @@ async function handleDownload() {
   const originalLabel = downloadBtn.textContent;
   downloadBtn.textContent = t().preparing;
   try {
-    let sourceBlob = asset.displayMode === 'enhanced' && asset.enhanced ? asset.enhanced.blob : await ensureBlob(asset);
-    const fmt = currentFormat;
+    const view = getView(asset);
+    const sourceBlob = await getViewBlob(asset);
     let outBlob = sourceBlob;
-    let ext = asset.displayMode === 'enhanced' ? 'png' : (asset.ext || extFromUrl(asset.url));
+    /* "Orijinal": Kick'ten gelen baytlar olduğu gibi, gerçek uzantısıyla iner. */
+    let ext = view.mode === 'original' ? extFromBlob(sourceBlob, view.ext) : 'png';
 
-    if (fmt !== 'original') {
-      outBlob = await convertImage(sourceBlob, fmt);
-      ext = extForFormat(fmt, ext);
-    } else {
-      outBlob = await convertImage(sourceBlob, 'png');
-      ext = 'png';
+    if (currentFormat !== 'original') {
+      outBlob = await convertImage(sourceBlob, currentFormat);
+      ext = extForFormat(currentFormat, ext);
     }
 
     if (outBlob.type === 'image/png') outBlob = await addPngMetadata(outBlob, state.username);
 
     const finalBlob = new Blob([outBlob], { type: 'application/octet-stream' });
-    await triggerDownload(finalBlob, getSafeFilename(state.username, asset.displayMode || 'original', ext));
+    await triggerDownload(finalBlob, getSafeFilename(state.username, view.mode, ext, state.activeTab));
     toast(t().toastDownloaded);
   } catch {
     toast(t().toastDownloadFailed, 'error');
@@ -906,13 +1143,7 @@ async function handleCopyImage() {
   if (!asset) return;
   try {
     if (!navigator.clipboard || !window.ClipboardItem) throw new Error('unsupported');
-    const sourceBlob = asset.displayMode === 'enhanced' && asset.enhanced ? asset.enhanced.blob : await ensureBlob(asset);
-    let blob = sourceBlob;
-    if (currentFormat !== 'original') {
-      blob = await convertImage(sourceBlob, currentFormat);
-    } else {
-      blob = await convertImage(sourceBlob, 'png');
-    }
+    let blob = await getViewBlob(asset);
     if (blob.type !== 'image/png') blob = await convertImage(blob, 'png');
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
     toast(t().toastCopied);
@@ -945,8 +1176,9 @@ async function handleShare() {
       }
       const asset = state.assets[state.activeTab];
       if (asset && navigator.canShare) {
-        const blob = await ensureBlob(asset);
-        const ext = asset.ext || extFromUrl(asset.url);
+        const view = getView(asset);
+        const blob = await getViewBlob(asset);
+        const ext = view.mode === 'original' ? extFromBlob(blob, view.ext) : 'png';
         const file = new File([blob], `${state.username}-${state.activeTab}.${ext}`,
           { type: blob.type || 'image/webp' });
         if (navigator.canShare({ files: [file] })) {
@@ -1001,8 +1233,8 @@ tabBanner.addEventListener('click', () => setActiveTab('banner'));
 function renderPreview() {
   const asset = state.assets[state.activeTab];
   if (!asset) return;
-  const selectedView = asset.displayMode === 'enhanced' && asset.enhanced ? asset.enhanced : null;
-  const currentUrl = selectedView ? selectedView.url : asset.url;
+  const view = getView(asset);
+  const currentUrl = view.url;
   previewFrame.classList.remove('loaded');
   previewImg.classList.remove('loaded');
   previewImg.removeAttribute('srcset');
@@ -1017,35 +1249,26 @@ function renderPreview() {
     previewFrame.classList.add('loaded');
   }
   if (modeSwitch) {
-    modeSwitch.hidden = !asset.enhanced;
+    modeSwitch.hidden = false;
     modeSwitch.querySelectorAll('.mode-btn').forEach((btn) => {
-      btn.classList.toggle('active', btn.dataset.mode === (asset.displayMode || 'original'));
+      btn.classList.toggle('active', btn.dataset.mode === view.mode);
     });
   }
   renderSpecs();
 }
 async function getOutputMeta(asset) {
-  const sourceBlob = asset.displayMode === 'enhanced' && asset.enhanced ? asset.enhanced.blob : await ensureBlob(asset);
-  let outputBlob = sourceBlob;
-  let ext = asset.displayMode === 'enhanced' ? 'png' : (asset.ext || extFromUrl(asset.url));
+  const view = getView(asset);
+  const sourceBlob = await getViewBlob(asset);
+  let ext = view.mode === 'original' ? extFromBlob(sourceBlob, view.ext) : 'png';
   let size = sourceBlob.size;
-  let w = asset.displayMode === 'enhanced' && asset.enhanced ? asset.enhanced.w : asset.w;
-  let h = asset.displayMode === 'enhanced' && asset.enhanced ? asset.enhanced.h : asset.h;
-
   if (currentFormat !== 'original') {
     try {
-      outputBlob = await convertImage(sourceBlob, currentFormat);
+      const outputBlob = await convertImage(sourceBlob, currentFormat);
       size = outputBlob.size;
       ext = extForFormat(currentFormat, ext);
     } catch {}
   }
-
-  if (asset.displayMode === 'enhanced' && currentFormat === 'original') {
-    ext = 'png';
-    size = sourceBlob.size;
-  }
-
-  return { w, h, size, ext };
+  return { w: view.w, h: view.h, size, ext };
 }
 async function renderSpecs() {
   const asset = state.assets[state.activeTab];
@@ -1058,7 +1281,8 @@ async function renderSpecs() {
     parts.push((meta.ext || 'WEBP').toUpperCase());
     if (meta.size) parts.push(formatBytes(meta.size));
     const html = parts.map(p => `<span>${p}</span>`).join('<span class="sep">·</span>');
-    const badgeText = asset.displayMode === 'enhanced' ? t().viewEnhanced : t().viewOriginal;
+    const mode = getView(asset).mode;
+    const badgeText = mode === 'strong' ? t().viewStrong : mode === 'clean' ? t().viewClean : t().viewOriginal;
     resultSpecs.innerHTML = html + `<span class="sep">·</span><span class="badge">${badgeText}</span>`;
   } catch {
     resultSpecs.textContent = '';
@@ -1194,12 +1418,20 @@ async function run(rawInput) {
     resultSpecs.textContent = '';
 
     try {
-      const data = await retry(() => fetchChannel(username), { retries: 1, minTimeout: 900 });
+      const { data, slug } = await retry(() => fetchChannelSmart(username), {
+        retries: 1, minTimeout: 900,
+        shouldRetry: (e) => !(e && e.type === 'notFound'),
+      });
       const originalPic = data && data.user && data.user.profile_pic;
       if (!originalPic) { renderError('noPic', username); goBtn.disabled = false; return; }
 
       const resolvedUsername = (data.user && data.user.username) || username;
       state.username = resolvedUsername;
+      state.slug = data.slug || slug;
+      state.channel = {
+        followers: pickFollowers(data),
+        verified: !!(data.verified || (data.user && data.user.verified)),
+      };
       pushHistory(resolvedUsername);
       updateUrl(resolvedUsername);
 
@@ -1207,7 +1439,7 @@ async function run(rawInput) {
       state.assets.avatar = {
         url: avatarBest.url, w: avatarBest.w, h: avatarBest.h,
         isHighest: avatarBest.isHighest, ext: extFromUrl(avatarBest.url),
-        size: null, blob: null, displayMode: 'original',
+        size: null, blob: null, displayMode: 'original', variants: {},
       };
 
       const bannerUrl =
@@ -1219,7 +1451,7 @@ async function run(rawInput) {
         state.assets.banner = {
           url: bannerBest.url, w: bannerBest.w, h: bannerBest.h,
           isHighest: bannerBest.isHighest, ext: extFromUrl(bannerBest.url),
-          size: null, blob: null, displayMode: 'original',
+          size: null, blob: null, displayMode: 'original', variants: {},
         };
         resultTabs.hidden = false;
       } else {
@@ -1232,8 +1464,9 @@ async function run(rawInput) {
       tabBanner.classList.remove('active');
 
       resultUsername.textContent = `@${resolvedUsername}`;
-      kickOpenBtn.href = `https://kick.com/${encodeURIComponent(resolvedUsername)}`;
-      kickOpenBtn.setAttribute('aria-label', `${t().kickOpenBtn} — kick.com/${resolvedUsername}`);
+      renderChannelMeta();
+      kickOpenBtn.href = `https://kick.com/${encodeURIComponent(state.slug)}`;
+      kickOpenBtn.setAttribute('aria-label', `${t().kickOpenBtn} — kick.com/${state.slug}`);
       renderPreview();
       showState('result');
       onIdle(enrichSizes);
@@ -1257,7 +1490,7 @@ async function enrichSizes() {
     try {
       const blob = await ensureBlob(asset);
       asset.size = blob.size;
-      asset.ext = (blob.type && blob.type.split('/')[1]) || asset.ext;
+      asset.ext = extFromBlob(blob, asset.ext);
       if (state.activeTab === key) renderSpecs();
     } catch {}
   }
@@ -1274,12 +1507,24 @@ retryBtn.addEventListener('click', () => {
 downloadBtn.addEventListener('click', handleDownload);
 modeSwitch && modeSwitch.addEventListener('click', async (e) => {
   const btn = e.target.closest('.mode-btn');
-  if (!btn) return;
+  if (!btn || btn.disabled) return;
   const asset = state.assets[state.activeTab];
   if (!asset) return;
-  const nextMode = btn.dataset.mode === 'enhanced' ? 'enhanced' : 'original';
-  if (nextMode === 'enhanced') {
-    await ensureEnhancedAsset(asset);
+  const nextMode = ['clean', 'strong'].includes(btn.dataset.mode) ? btn.dataset.mode : 'original';
+  if (nextMode === (asset.displayMode || 'original')) return;
+  if (nextMode !== 'original' && !(asset.variants && asset.variants[nextMode])) {
+    const buttons = modeSwitch.querySelectorAll('.mode-btn');
+    buttons.forEach((b) => { b.disabled = true; });
+    btn.textContent = t().upscaling;
+    try {
+      await ensureVariant(asset, nextMode);
+    } catch {
+      toast(t().toastEnhanceFailed, 'error');
+      return;
+    } finally {
+      buttons.forEach((b) => { b.disabled = false; });
+      applyModeLabels();
+    }
   }
   asset.displayMode = nextMode;
   renderPreview();
@@ -1287,15 +1532,13 @@ modeSwitch && modeSwitch.addEventListener('click', async (e) => {
 openBtn.addEventListener('click', () => {
   const asset = getActiveAsset();
   if (asset) {
-    const current = asset.displayMode === 'enhanced' && asset.enhanced ? asset.enhanced : asset;
-    openLightbox(current.url || asset.url);
+    openLightbox(getView(asset).url);
   }
 });
 previewFrame.addEventListener('click', () => {
   const asset = getActiveAsset();
   if (asset) {
-    const current = asset.displayMode === 'enhanced' && asset.enhanced ? asset.enhanced : asset;
-    openLightbox(current.url || asset.url);
+    openLightbox(getView(asset).url);
   }
 });
 copyImgBtn.addEventListener('click', handleCopyImage);

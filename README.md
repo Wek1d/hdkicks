@@ -13,6 +13,9 @@ Paste a Kick username or a `kick.com/...` link, hit **Fetch**, and it resolves t
 ### Features
 
 - **Highest-resolution avatar and banner** — picks the best variant by real image dimensions, not by URL guessing alone.
+- **Channel info** — follower count (compact, e.g. `1,2 Mn`) and Kick's verified-streamer badge, shown next to the handle.
+- **Upscale modes** — *Original* (untouched), *Clean ×2* (Lanczos only, colors untouched) and *Strong ×4* (staged Lanczos + luma-only, thresholded sharpening so skin and flat areas aren't amplified). All client-side.
+- **Username fallback** — Kick slugs use `-` while usernames can contain `_`; if a name isn't found, the opposite separator is tried automatically.
 - **Format conversion** — Original / PNG / JPEG / WEBP, done client-side with canvas (Firefox-safe: skips canvas if the blob already matches the target type).
 - **Raw-byte downloads** — pulled as `Blob`, not re-encoded through canvas when "Original" is selected, so the saved file matches the source.
 - **Lightbox zoom** — click once to zoom at the clicked point, double-click for deeper zoom. On a mouse, hovering over a zoomed image pans it like a loupe.
@@ -33,7 +36,7 @@ Paste a Kick username or a `kick.com/...` link, hit **Fetch**, and it resolves t
 
 1. **Resolve channel** — `https://kick.com/api/v2/channels/<username>`. Tries direct first; if blocked, falls back through a small proxy pool (corsproxy.io → allorigins → codetabs → thingproxy), remembering whichever works.
 2. **Generate variants** — strips resize query params (`w`, `h`, `quality`, `fit`, `format`…), and swaps `-thumb/-small/-medium/-large` suffixes or prefixes for `fullsize-` / `original-` / no-prefix versions.
-3. **Measure and pick** — loads every variant in parallel (max 4 at a time), reads `naturalWidth × naturalHeight`, picks the largest area that actually loads.
+3. **Measure and pick** — loads every variant in parallel (max 4 at a time), reads `naturalWidth × naturalHeight`, picks the largest area that actually loads. If the URL is already a `-fullsize` / `-original` file, probing is skipped.
 4. **Fetch as blob** — direct CORS fetch first, then through the proxy pool. Blob signature is validated (magic bytes for JPEG/PNG/GIF/WEBP/RIFF) before use, so an HTML error page from a proxy never gets mistaken for an image.
 5. **Deliver** — download is triggered with a proper `download` attribute; if a cross-origin blob can't be forced into a download, it opens in a new tab instead of navigating away.
 
