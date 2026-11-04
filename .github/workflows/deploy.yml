@@ -1,0 +1,44 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    # Her Pazartesi sitemap'i ve build'i taze tut
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build site & sitemap
+        run: node build.js
+
+      - name: Commit updated sitemap if changed
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          if [[ -n $(git status --porcelain sitemap.xml docs/sitemap.xml) ]]; then
+            git add sitemap.xml docs/sitemap.xml
+            git commit -m "chore(seo): automated sitemap update [skip ci]" || echo "No changes to commit"
+            git push origin main || echo "Push skipped"
+          fi
