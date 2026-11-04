@@ -39,7 +39,6 @@ const onIdle = window.requestIdleCallback
 const dict = {
   tr: {
     docTitle: 'hdkicks — Kick profil görseli',
-    kicker: 'Kick · Görsel Aracı',
     title: 'Kick profil görselini en <span class="hl">yüksek çözünürlükle</span> çek.',
     lede: "Kullanıcı adı ya da link yeter. Kick'in genel API'sinden alır, ölçeklemez, sadeleştirmez. İstersen PNG/JPEG/WebP'ye dönüştür.",
     goBtn: 'Çek',
@@ -106,10 +105,23 @@ const dict = {
     formatOriginal: 'Orijinal',
     shareTitle: (u) => `@${u} · hdkicks`,
     shareText: (u) => `Kick profil görseli: @${u} — hdkicks ile indir`,
+    zipBtn: 'ZIP indir',
+    zipPreparing: 'ZIP hazırlanıyor…',
+    toastZip: 'ZIP indirildi',
+    toastColorCopied: (c) => `${c} kopyalandı`,
+    paletteTitle: 'Rengi kopyala',
+    faqTitle: 'Sık sorulanlar',
+    faq1q: 'Kick profil fotoğrafı nasıl indirilir?',
+    faq1a: 'Kullanıcı adını (ya da kick.com linkini) kutuya yaz, “Çek”e bas. Önizleme gelince “İndir”e tıklaman yeterli.',
+    faq2q: 'Görsel kalitesi düşüyor mu?',
+    faq2a: 'Hayır. “Orijinal” modda Kick\'in sunduğu en büyük dosya dokunulmadan iner. Sade ×2 ve Güçlü ×4 modları isteğe bağlıdır ve tarayıcında çalışır.',
+    faq3q: 'Banner\'ı da indirebilir miyim?',
+    faq3a: 'Kanalın banner\'ı varsa sonuç kartında Avatar / Banner sekmeleri çıkar; ikisini tek ZIP olarak da indirebilirsin.',
+    faq4q: 'Verilerim saklanıyor mu?',
+    faq4a: 'Sunucumuz yok. Son aramalar ve tercihlerin sadece kendi tarayıcında (localStorage) durur. Kick doğrudan erişime izin vermezse istek herkese açık CORS proxy\'leri üzerinden gider.',
   },
   en: {
     docTitle: 'hdkicks — Kick profile picture',
-    kicker: 'Kick · Image Tool',
     title: 'Grab a Kick profile picture in its <span class="hl">highest resolution</span>.',
     lede: "Just a username or a link. Pulled straight from Kick's public API — no resizing, no compression. Convert to PNG/JPEG/WebP if you want.",
     goBtn: 'Fetch',
@@ -176,6 +188,20 @@ const dict = {
     formatOriginal: 'Original',
     shareTitle: (u) => `@${u} · hdkicks`,
     shareText: (u) => `Kick profile picture: @${u} — grab it with hdkicks`,
+    zipBtn: 'Download ZIP',
+    zipPreparing: 'building ZIP…',
+    toastZip: 'ZIP downloaded',
+    toastColorCopied: (c) => `${c} copied`,
+    paletteTitle: 'Copy color',
+    faqTitle: 'FAQ',
+    faq1q: 'How do I download a Kick profile picture?',
+    faq1a: 'Type the username (or paste a kick.com link) and hit “Fetch”. When the preview shows up, click “Download”.',
+    faq2q: 'Does the image lose quality?',
+    faq2a: 'No. In “Original” mode the largest file Kick offers is saved untouched. Clean ×2 and Strong ×4 are optional and run in your browser.',
+    faq3q: 'Can I download the banner too?',
+    faq3a: 'If the channel has a banner, the result card shows Avatar / Banner tabs, and you can grab both as a single ZIP.',
+    faq4q: 'Is my data stored?',
+    faq4a: 'There is no server. Recent searches and preferences stay in your own browser (localStorage). If Kick blocks direct access, requests go through public CORS proxies.',
   },
 };
 
@@ -228,6 +254,9 @@ const copyImgBtn = $('copy-img-btn');
 const copyLinkBtn = $('copy-link-btn');
 const shareBtn = $('share-btn');
 const qrBtn = $('qr-btn');
+const zipBtn = $('zip-btn');
+const paletteEl = $('palette');
+const resultCard = $('state-result');
 const errorTitle = $('error-title');
 const errorDetail = $('error-detail');
 const retryBtn = $('retry-btn');
@@ -257,6 +286,7 @@ function updateFormatUI() {
     ? (d.formatOriginal || FORMAT_LABELS.original)
     : FORMAT_LABELS[currentFormat];
   formatCurrent.textContent = label;
+  const fo = $('fmt-original'); if (fo) fo.textContent = d.formatOriginal;
   formatMenu.querySelectorAll('li').forEach(li => {
     li.classList.toggle('selected', li.dataset.value === currentFormat);
   });
@@ -343,17 +373,19 @@ function applyStaticText() {
   const d = t();
   document.title = d.docTitle;
   document.documentElement.lang = lang;
-  $('kicker').textContent = d.kicker;
   $('title').innerHTML = d.title;
   $('lede').textContent = d.lede;
   goBtn.textContent = d.goBtn;
   $('query').placeholder = d.queryPlaceholder;
-  $('hint').innerHTML = `${d.hintPre}<mono>${d.hintMono}</mono>${d.hintPost}`;
+  $('hint').innerHTML = `${d.hintPre}<code class="mono">${d.hintMono}</code>${d.hintPost}`;
   loadingText.textContent = d.loading;
   openBtn.textContent = d.openBtn;
   copyImgBtn.textContent = d.copyImgBtn;
   copyLinkBtn.textContent = d.copyLinkBtn;
   shareBtn.textContent = d.shareBtn;
+  if (!zipBtn.dataset.busy) zipBtn.textContent = d.zipBtn;
+  $('faq-title').textContent = d.faqTitle;
+  for (let i = 1; i <= 4; i++) { $('faq-q' + i).textContent = d['faq' + i + 'q']; $('faq-a' + i).textContent = d['faq' + i + 'a']; }
   $('zoom-tag').textContent = d.zoomTag;
   $('footer-note').textContent = d.footerNote;
   $('footer-by').textContent = d.footerBy;
@@ -370,6 +402,7 @@ function applyStaticText() {
   if (!downloadBtn.dataset.busy) downloadBtn.textContent = d.downloadBtn;
   document.querySelectorAll('.lang-pill button').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.lang === lang);
+    btn.setAttribute('aria-pressed', String(btn.dataset.lang === lang));
   });
   updateFormatUI();
   if (lastErrorState) renderError(lastErrorState.type, lastErrorState.username);
@@ -469,15 +502,26 @@ function shareUrl(username) {
   if (!username) return base;
   return `${base}#u=${encodeURIComponent(username)}`;
 }
-/* Adres çubuğunu HİÇ değiştirmiyoruz → tek URL, tek sayfa,
-   Google için temiz. Paylaşım linkleri shareUrl() ile üretiliyor. */
-function updateUrl() { /* intentionally no-op */ }
+/* Adres çubuğuna sadece #u=kullanıcı yazıyoruz: hash Google için ayrı sayfa
+   sayılmaz (tek URL, tek sayfa) ama yenileyince / yer imine ekleyince sonuç korunur.
+   replaceState hashchange tetiklemez, geçmişi de kirletmez. */
+function updateUrl(username) {
+  try {
+    const hash = username ? `#u=${encodeURIComponent(username)}` : '';
+    history.replaceState(null, '', location.pathname + location.search + hash);
+  } catch {}
+}
+function usernameFromHash() {
+  const m = location.hash.match(/^#u=([^&]+)/);
+  if (!m) return null;
+  try { return decodeURIComponent(m[1]); } catch { return null; }
+}
 
 /* ---------- Username extract ---------- */
 function extractUsername(raw) {
   let v = (raw || '').trim();
   if (!v) return null;
-  v = v.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/^kick\.com\//i, '');
+  v = v.replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/^kick\.com\//i, '').replace(/^@+/, '');
   v = v.split('?')[0].split('#')[0];
   v = v.replace(/\/+$/, '');
   v = v.split('/')[0];
@@ -503,14 +547,23 @@ function orderedProxies() {
   if (!preferred) return PROXIES;
   return [...PROXIES].sort((a, b) => (a.id === preferred ? -1 : b.id === preferred ? 1 : 0));
 }
-async function fetchWithProxies(url, isJson) {
+function fetchT(url, opts = {}, ms = 9000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(timer));
+}
+/* Proxy'ler bazen 200 ile HTML/hata sayfası döndürür; JSON olarak çözülemezse
+   bir sonraki proxy'ye geçilir (eskiden doğrudan 'bağlantı hatası' oluyordu). */
+async function fetchJsonViaProxies(url) {
   let lastErr;
   for (const proxy of orderedProxies()) {
     try {
-      const res = await fetch(proxy.build(url), { headers: isJson ? { Accept: 'application/json' } : {} });
-      if (!res.ok && res.status !== 404 && res.status !== 429) throw new Error('HTTP ' + res.status);
+      const res = await fetchT(proxy.build(url), { headers: { Accept: 'application/json' } });
+      if (res.status === 404 || res.status === 429) { setPreferredProxy(proxy.id); return { status: res.status, data: null }; }
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = JSON.parse(await res.text());
       setPreferredProxy(proxy.id);
-      return res;
+      return { status: 200, data };
     } catch (e) { lastErr = e; }
   }
   throw lastErr || new Error('proxy failed');
@@ -520,18 +573,17 @@ async function fetchWithProxies(url, isJson) {
 async function fetchChannel(username) {
   const apiUrl = `https://kick.com/api/v2/channels/${encodeURIComponent(username)}`;
   try {
-    const direct = await fetch(apiUrl, { headers: { Accept: 'application/json' } });
-    if (direct.ok) return await direct.json();
-    if (direct.status === 404) throw makeErr('notFound');
-    if (direct.status === 429) throw makeErr('rateLimit');
-    if (direct.status >= 500) throw makeErr('serverError');
+    const direct = await fetchT(apiUrl, { headers: { Accept: 'application/json' } }, 5000);
+    if (direct.ok) { try { return await direct.json(); } catch {} }
+    else if (direct.status === 404) throw makeErr('notFound');
+    else if (direct.status === 429) throw makeErr('rateLimit');
+    else if (direct.status >= 500) throw makeErr('serverError');
   } catch (e) { if (e && e.type) throw e; }
   try {
-    const res = await fetchWithProxies(apiUrl, true);
-    if (res.status === 404) throw makeErr('notFound');
-    if (res.status === 429) throw makeErr('rateLimit');
-    if (res.status >= 500) throw makeErr('serverError');
-    return await res.json();
+    const r = await fetchJsonViaProxies(apiUrl);
+    if (r.status === 404) throw makeErr('notFound');
+    if (r.status === 429) throw makeErr('rateLimit');
+    return r.data;
   } catch (e) {
     if (e && e.type) throw e;
     throw makeErr('network');
@@ -716,7 +768,7 @@ async function fetchImageBlob(url) {
   if (blobCache.has(url)) return blobCache.get(url);
   const promise = (async () => {
     try {
-      const r = await fetch(url, { mode: 'cors' });
+      const r = await fetchT(url, { mode: 'cors' }, 12000);
       if (r.ok) {
         const b = await normalizeImageBlob(await r.blob());
         if (b) return b;
@@ -724,7 +776,7 @@ async function fetchImageBlob(url) {
     } catch {}
     for (const proxy of orderedProxies()) {
       try {
-        const r = await fetch(proxy.build(url));
+        const r = await fetchT(proxy.build(url), {}, 12000);
         if (!r.ok) continue;
         const b = await normalizeImageBlob(await r.blob());
         if (b) { setPreferredProxy(proxy.id); return b; }
@@ -838,9 +890,7 @@ async function addPngMetadata(blob, username) {
   const metadata = {
     Title: `${username} Kick profile image`,
     Subject: 'Kick profile image',
-    Author: 'Arda Keçeci',
     Description: `Kick profile image of ${username}, exported with hdkicks.`,
-    Copyright: 'Copyright 2026 Arda Keçeci',
     Software: 'hdkicks',
     Source: 'Kick',
     GitHub: 'https://github.com/Wek1d/hdkicks',
@@ -849,8 +899,9 @@ async function addPngMetadata(blob, username) {
     Comment: 'Metadata added by hdkicks during export.',
   };
   const chunks = Object.entries(metadata).map(([keyword, value]) => {
-    const keyBytes = Uint8Array.from(keyword, char => char.charCodeAt(0));
-    const textBytes = Uint8Array.from(value, char => char.charCodeAt(0));
+    const latin1 = v => String(v).replace(/[^\x00-\xFF]/g, '?');
+    const keyBytes = Uint8Array.from(latin1(keyword), char => char.charCodeAt(0));
+    const textBytes = Uint8Array.from(latin1(value), char => char.charCodeAt(0));
     const data = new Uint8Array(keyBytes.length + 1 + textBytes.length);
     data.set(keyBytes);
     data.set(textBytes, keyBytes.length + 1);
@@ -860,7 +911,7 @@ async function addPngMetadata(blob, username) {
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;',
   })[char]);
   const safeUsername = escapeXml(username || 'Kick user');
-  const xmp = `<?xpacket begin="\uFEFF" id="W5M0MpCehiHzreSzNTczkc9d"?><x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xmp="http://ns.adobe.com/xap/1.0/" xmlns:xmpRights="http://ns.adobe.com/xap/1.0/rights/" xmlns:photoshop="http://ns.adobe.com/photoshop/1.0/"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">${safeUsername} Kick profile image</rdf:li></rdf:Alt></dc:title><dc:creator><rdf:Seq><rdf:li>Arda Keçeci</rdf:li></rdf:Seq></dc:creator><dc:description><rdf:Alt><rdf:li xml:lang="x-default">Kick profile image of ${safeUsername}, exported with hdkicks.</rdf:li></rdf:Alt></dc:description><dc:subject><rdf:Bag><rdf:li>Kick</rdf:li><rdf:li>profile image</rdf:li><rdf:li>hdkicks</rdf:li></rdf:Bag></dc:subject><dc:rights><rdf:Alt><rdf:li xml:lang="x-default">Copyright 2026 Arda Keçeci</rdf:li></rdf:Alt></dc:rights><xmp:CreatorTool>hdkicks</xmp:CreatorTool><xmpRights:WebStatement>https://github.com/Wek1d/hdkicks</xmpRights:WebStatement><photoshop:Source>Kick</photoshop:Source><photoshop:Credit>hdkicks</photoshop:Credit></rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end="w"?>`;
+  const xmp = `<?xpacket begin="\uFEFF" id="W5M0MpCehiHzreSzNTczkc9d"?><x:xmpmeta xmlns:x="adobe:ns:meta/"><rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"><rdf:Description rdf:about="" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:xmp="http://ns.adobe.com/xap/1.0/" xmlns:xmpRights="http://ns.adobe.com/xap/1.0/rights/" xmlns:photoshop="http://ns.adobe.com/photoshop/1.0/"><dc:title><rdf:Alt><rdf:li xml:lang="x-default">${safeUsername} Kick profile image</rdf:li></rdf:Alt></dc:title><dc:description><rdf:Alt><rdf:li xml:lang="x-default">Kick profile image of ${safeUsername}, exported with hdkicks.</rdf:li></rdf:Alt></dc:description><dc:subject><rdf:Bag><rdf:li>Kick</rdf:li><rdf:li>profile image</rdf:li><rdf:li>hdkicks</rdf:li></rdf:Bag></dc:subject><xmp:CreatorTool>hdkicks</xmp:CreatorTool><xmpRights:WebStatement>https://github.com/Wek1d/hdkicks</xmpRights:WebStatement><photoshop:Source>Kick</photoshop:Source><photoshop:Credit>hdkicks</photoshop:Credit></rdf:Description></rdf:RDF></x:xmpmeta><?xpacket end="w"?>`;
   const encoder = new TextEncoder();
   const keyword = encoder.encode('XML:com.adobe.xmp');
   const xmpBytes = encoder.encode(xmp);
@@ -902,175 +953,101 @@ const UPSCALE_PRESETS = {
   ],
 };
 const MAX_OUTPUT_PIXELS = 16e6;
-const nextFrame = () => new Promise((r) => requestAnimationFrame(() => r()));
 
-function lanczos3(x) {
-  if (x === 0) return 1;
-  if (x <= -3 || x >= 3) return 0;
-  const px = Math.PI * x;
-  return (3 * Math.sin(px) * Math.sin(px / 3)) / (px * px);
+/* Ağır işlem (Lanczos + keskinleştirme) ayrı thread'de çalışır: sayfa donmaz.
+   Kaynak string olarak tutuluyor; build'de değişken isimleri küçültülse de bozulmaz. */
+const UPSCALE_WORKER_SRC = `
+function lanczos3(x){if(x===0)return 1;if(x<=-3||x>=3)return 0;var px=Math.PI*x;return(3*Math.sin(px)*Math.sin(px/3))/(px*px);}
+function buildW(srcLen,dstLen){var taps=6,ratio=dstLen/srcLen,starts=new Int32Array(dstLen),weights=new Float32Array(dstLen*taps);
+for(var i=0;i<dstLen;i++){var c=(i+0.5)/ratio-0.5,st=Math.floor(c)-2,sum=0;
+for(var k=0;k<taps;k++){var w=lanczos3(c-(st+k));weights[i*taps+k]=w;sum+=w;}
+for(var k2=0;k2<taps;k2++)weights[i*taps+k2]/=sum;starts[i]=st;}
+return{starts:starts,weights:weights,taps:taps};}
+function resize(data,sw,sh,dw,dh){var hx=buildW(sw,dw),tmp=new Float32Array(dw*sh*4);
+for(var y=0;y<sh;y++){var rowIn=y*sw;for(var x=0;x<dw;x++){var s0=hx.starts[x],r=0,g=0,b=0,a=0;
+for(var k=0;k<hx.taps;k++){var sx=Math.min(sw-1,Math.max(0,s0+k)),w=hx.weights[x*hx.taps+k],i=(rowIn+sx)*4;
+r+=data[i]*w;g+=data[i+1]*w;b+=data[i+2]*w;a+=data[i+3]*w;}
+var o=(y*dw+x)*4;tmp[o]=r;tmp[o+1]=g;tmp[o+2]=b;tmp[o+3]=a;}}
+var vy=buildW(sh,dh),out=new Float32Array(dw*dh*4);
+for(var y2=0;y2<dh;y2++){var s1=vy.starts[y2];for(var x2=0;x2<dw;x2++){var r2=0,g2=0,b2=0,a2=0;
+for(var k3=0;k3<vy.taps;k3++){var sy=Math.min(sh-1,Math.max(0,s1+k3)),w2=vy.weights[y2*vy.taps+k3],i2=(sy*dw+x2)*4;
+r2+=tmp[i2]*w2;g2+=tmp[i2+1]*w2;b2+=tmp[i2+2]*w2;a2+=tmp[i2+3]*w2;}
+var o2=(y2*dw+x2)*4,al=Math.min(255,Math.max(0,a2));
+out[o2]=Math.min(al,Math.max(0,r2));out[o2+1]=Math.min(al,Math.max(0,g2));out[o2+2]=Math.min(al,Math.max(0,b2));out[o2+3]=al;}}
+return out;}
+function blur(src,w,h,sigma){var r=Math.max(1,Math.ceil(sigma*3)),kernel=new Float32Array(2*r+1),sum=0;
+for(var i=-r;i<=r;i++){var v=Math.exp(-(i*i)/(2*sigma*sigma));kernel[i+r]=v;sum+=v;}
+for(var j=0;j<kernel.length;j++)kernel[j]/=sum;
+var tmp=new Float32Array(w*h),out=new Float32Array(w*h);
+for(var y=0;y<h;y++)for(var x=0;x<w;x++){var acc=0;for(var q=-r;q<=r;q++)acc+=src[y*w+Math.min(w-1,Math.max(0,x+q))]*kernel[q+r];tmp[y*w+x]=acc;}
+for(var y2=0;y2<h;y2++)for(var x2=0;x2<w;x2++){var acc2=0;for(var q2=-r;q2<=r;q2++)acc2+=tmp[Math.min(h-1,Math.max(0,y2+q2))*w+x2]*kernel[q2+r];out[y2*w+x2]=acc2;}
+return out;}
+function sharpen(data,w,h,p){var n=w*h,luma=new Float32Array(n);
+for(var i=0;i<n;i++)luma[i]=0.299*data[i*4]+0.587*data[i*4+1]+0.114*data[i*4+2];
+var bl=blur(luma,w,h,p.sigma);
+for(var j=0;j<n;j++){var diff=luma[j]-bl[j],ad=Math.abs(diff);if(ad<=p.threshold)continue;
+diff=Math.sign(diff)*(ad-p.threshold);var delta=Math.max(-40,Math.min(40,diff*p.amount)),a=data[j*4+3],o=j*4;
+data[o]=Math.min(a,Math.max(0,data[o]+delta));data[o+1]=Math.min(a,Math.max(0,data[o+1]+delta));data[o+2]=Math.min(a,Math.max(0,data[o+2]+delta));}}
+self.onmessage=function(e){try{var m=e.data,w=m.w,h=m.h,px=new Uint8ClampedArray(m.buf),data=new Float32Array(w*h*4);
+for(var i=0;i<w*h;i++){var a=px[i*4+3]/255;data[i*4]=px[i*4]*a;data[i*4+1]=px[i*4+1]*a;data[i*4+2]=px[i*4+2]*a;data[i*4+3]=px[i*4+3];}
+var ran=0,scale=1;
+for(var s=0;s<m.stages.length;s++){var st=m.stages[s],dw=Math.round(w*st.scale),dh=Math.round(h*st.scale);
+if(dw*dh>m.max)break;data=resize(data,w,h,dw,dh);w=dw;h=dh;scale*=st.scale;if(st.sharpen)sharpen(data,w,h,st.sharpen);ran++;
+self.postMessage({progress:ran/m.stages.length});}
+if(!ran){self.postMessage({error:'too large'});return;}
+var out=new Uint8ClampedArray(w*h*4);
+for(var k=0;k<w*h;k++){var al=data[k*4+3],f=al>0?255/al:0;out[k*4]=data[k*4]*f;out[k*4+1]=data[k*4+1]*f;out[k*4+2]=data[k*4+2]*f;out[k*4+3]=al;}
+self.postMessage({buf:out.buffer,w:w,h:h,scale:scale},[out.buffer]);}catch(err){self.postMessage({error:String(err&&err.message||err)});}};
+`;
+
+function runUpscaleWorker(buf, w, h, stages, onProgress) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(new Blob([UPSCALE_WORKER_SRC], { type: 'text/javascript' }));
+    let worker;
+    try { worker = new Worker(url); } catch (e) { URL.revokeObjectURL(url); reject(e); return; }
+    const done = () => { worker.terminate(); URL.revokeObjectURL(url); };
+    worker.onmessage = (ev) => {
+      const m = ev.data;
+      if (m.progress !== undefined) { if (onProgress) onProgress(m.progress); return; }
+      done();
+      if (m.error) reject(new Error(m.error)); else resolve(m);
+    };
+    worker.onerror = (ev) => { done(); reject(new Error(ev.message || 'worker failed')); };
+    worker.postMessage({ buf, w, h, stages, max: MAX_OUTPUT_PIXELS }, [buf]);
+  });
 }
-function buildLanczosWeights(srcLen, dstLen) {
-  const taps = 6;
-  const ratio = dstLen / srcLen;
-  const starts = new Int32Array(dstLen);
-  const weights = new Float32Array(dstLen * taps);
-  for (let i = 0; i < dstLen; i++) {
-    const center = (i + 0.5) / ratio - 0.5;
-    const start = Math.floor(center) - 2;
-    let sum = 0;
-    for (let k = 0; k < taps; k++) {
-      const w = lanczos3(center - (start + k));
-      weights[i * taps + k] = w;
-      sum += w;
-    }
-    for (let k = 0; k < taps; k++) weights[i * taps + k] /= sum;
-    starts[i] = start;
-  }
-  return { starts, weights, taps };
-}
-/* data: premultiplied RGBA Float32Array */
-function resizeLanczos(data, sw, sh, dw, dh) {
-  const hx = buildLanczosWeights(sw, dw);
-  const tmp = new Float32Array(dw * sh * 4);
-  for (let y = 0; y < sh; y++) {
-    const rowIn = y * sw;
-    for (let x = 0; x < dw; x++) {
-      const s = hx.starts[x];
-      let r = 0, g = 0, b = 0, a = 0;
-      for (let k = 0; k < hx.taps; k++) {
-        const sx = Math.min(sw - 1, Math.max(0, s + k));
-        const w = hx.weights[x * hx.taps + k];
-        const i = (rowIn + sx) * 4;
-        r += data[i] * w; g += data[i + 1] * w; b += data[i + 2] * w; a += data[i + 3] * w;
-      }
-      const o = (y * dw + x) * 4;
-      tmp[o] = r; tmp[o + 1] = g; tmp[o + 2] = b; tmp[o + 3] = a;
-    }
-  }
-  const vy = buildLanczosWeights(sh, dh);
-  const out = new Float32Array(dw * dh * 4);
-  for (let y = 0; y < dh; y++) {
-    const s = vy.starts[y];
-    for (let x = 0; x < dw; x++) {
-      let r = 0, g = 0, b = 0, a = 0;
-      for (let k = 0; k < vy.taps; k++) {
-        const sy = Math.min(sh - 1, Math.max(0, s + k));
-        const w = vy.weights[y * vy.taps + k];
-        const i = (sy * dw + x) * 4;
-        r += tmp[i] * w; g += tmp[i + 1] * w; b += tmp[i + 2] * w; a += tmp[i + 3] * w;
-      }
-      const o = (y * dw + x) * 4;
-      const al = Math.min(255, Math.max(0, a));
-      out[o] = Math.min(al, Math.max(0, r));
-      out[o + 1] = Math.min(al, Math.max(0, g));
-      out[o + 2] = Math.min(al, Math.max(0, b));
-      out[o + 3] = al;
-    }
-  }
-  return out;
-}
-function gaussianBlur(src, w, h, sigma) {
-  const r = Math.max(1, Math.ceil(sigma * 3));
-  const kernel = new Float32Array(2 * r + 1);
-  let sum = 0;
-  for (let i = -r; i <= r; i++) { const v = Math.exp(-(i * i) / (2 * sigma * sigma)); kernel[i + r] = v; sum += v; }
-  for (let i = 0; i < kernel.length; i++) kernel[i] /= sum;
-  const tmp = new Float32Array(w * h);
-  const out = new Float32Array(w * h);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      let acc = 0;
-      for (let i = -r; i <= r; i++) acc += src[y * w + Math.min(w - 1, Math.max(0, x + i))] * kernel[i + r];
-      tmp[y * w + x] = acc;
-    }
-  }
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      let acc = 0;
-      for (let i = -r; i <= r; i++) acc += tmp[Math.min(h - 1, Math.max(0, y + i)) * w + x] * kernel[i + r];
-      out[y * w + x] = acc;
-    }
-  }
-  return out;
-}
-function sharpenLuma(data, w, h, { amount, sigma, threshold }) {
-  const n = w * h;
-  const luma = new Float32Array(n);
-  for (let i = 0; i < n; i++) luma[i] = 0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
-  const blurred = gaussianBlur(luma, w, h, sigma);
-  for (let i = 0; i < n; i++) {
-    let diff = luma[i] - blurred[i];
-    const ad = Math.abs(diff);
-    if (ad <= threshold) continue;
-    diff = Math.sign(diff) * (ad - threshold);
-    const delta = Math.max(-40, Math.min(40, diff * amount));
-    const a = data[i * 4 + 3];
-    const o = i * 4;
-    data[o] = Math.min(a, Math.max(0, data[o] + delta));
-    data[o + 1] = Math.min(a, Math.max(0, data[o + 1] + delta));
-    data[o + 2] = Math.min(a, Math.max(0, data[o + 2] + delta));
-  }
-}
-async function upscaleBlob(blob, mode) {
+async function upscaleBlob(blob, mode, onProgress) {
   const stages = UPSCALE_PRESETS[mode];
   if (!stages) throw new Error('unknown mode');
   const img = await blobToImage(blob);
-  let w = img.naturalWidth, h = img.naturalHeight;
+  const w0 = img.naturalWidth, h0 = img.naturalHeight;
   const canvas = document.createElement('canvas');
-  canvas.width = w; canvas.height = h;
+  canvas.width = w0; canvas.height = h0;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   if (!ctx) throw new Error('canvas not available');
   ctx.drawImage(img, 0, 0);
-  const px = ctx.getImageData(0, 0, w, h).data;
-  let data = new Float32Array(w * h * 4);
-  for (let i = 0; i < w * h; i++) {
-    const a = px[i * 4 + 3] / 255;
-    data[i * 4] = px[i * 4] * a;
-    data[i * 4 + 1] = px[i * 4 + 1] * a;
-    data[i * 4 + 2] = px[i * 4 + 2] * a;
-    data[i * 4 + 3] = px[i * 4 + 3];
-  }
-  let ran = 0;
-  for (const stage of stages) {
-    const dw = Math.round(w * stage.scale), dh = Math.round(h * stage.scale);
-    if (dw * dh > MAX_OUTPUT_PIXELS) break;
-    await nextFrame();
-    data = resizeLanczos(data, w, h, dw, dh);
-    w = dw; h = dh;
-    if (stage.sharpen) sharpenLuma(data, w, h, stage.sharpen);
-    ran++;
-  }
-  if (!ran) throw new Error('image too large to upscale');
-  const outData = new Uint8ClampedArray(w * h * 4);
-  for (let i = 0; i < w * h; i++) {
-    const a = data[i * 4 + 3];
-    const f = a > 0 ? 255 / a : 0;
-    outData[i * 4] = data[i * 4] * f;
-    outData[i * 4 + 1] = data[i * 4 + 1] * f;
-    outData[i * 4 + 2] = data[i * 4 + 2] * f;
-    outData[i * 4 + 3] = a;
-  }
+  const px = ctx.getImageData(0, 0, w0, h0);
+  const res = await runUpscaleWorker(px.data.buffer, w0, h0, stages, onProgress);
   const outCanvas = document.createElement('canvas');
-  outCanvas.width = w; outCanvas.height = h;
-  outCanvas.getContext('2d').putImageData(new ImageData(outData, w, h), 0, 0);
+  outCanvas.width = res.w; outCanvas.height = res.h;
+  outCanvas.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(res.buf), res.w, res.h), 0, 0);
   const out = await new Promise((resolve, reject) =>
     outCanvas.toBlob((b) => (b ? resolve(b) : reject(new Error('upscale failed'))), 'image/png'));
-  return { blob: out, w, h };
+  return { blob: out, w: res.w, h: res.h, scale: res.scale };
 }
-async function ensureVariant(asset, mode) {
+async function ensureVariant(asset, mode, onProgress) {
   asset.variants = asset.variants || {};
   if (asset.variants[mode]) return asset.variants[mode];
   const source = await ensureBlob(asset);
-  const r = await upscaleBlob(source, mode);
-  asset.variants[mode] = { url: URL.createObjectURL(r.blob), blob: r.blob, w: r.w, h: r.h, size: r.blob.size };
+  const r = await upscaleBlob(source, mode, onProgress);
+  asset.variants[mode] = { url: URL.createObjectURL(r.blob), blob: r.blob, w: r.w, h: r.h, size: r.blob.size, scale: r.scale };
   return asset.variants[mode];
 }
 /* Aktif görünüm: orijinal dosya ya da yükseltilmiş varyant */
 function getView(asset) {
   const mode = asset.displayMode || 'original';
   const v = mode !== 'original' && asset.variants && asset.variants[mode];
-  if (v) return { mode, url: v.url, blob: v.blob, w: v.w, h: v.h, ext: 'png' };
+  if (v) return { mode, url: v.url, blob: v.blob, w: v.w, h: v.h, ext: 'png', scale: v.scale };
   return { mode: 'original', url: asset.url, blob: asset.blob, w: asset.w, h: asset.h, ext: asset.ext || extFromUrl(asset.url) };
 }
 async function getViewBlob(asset) {
@@ -1102,6 +1079,21 @@ function ensureBlob(asset) {
   if (asset.blob) return Promise.resolve(asset.blob);
   return fetchImageBlob(asset.url).then(b => { asset.blob = b; return b; });
 }
+/* Tek görseli (aktif mod + seçili format) indirilecek hale getirir */
+async function exportAsset(key) {
+  const asset = state.assets[key];
+  const view = getView(asset);
+  const sourceBlob = await getViewBlob(asset);
+  let outBlob = sourceBlob;
+  /* "Orijinal": Kick'ten gelen baytlar olduğu gibi, gerçek uzantısıyla iner. */
+  let ext = view.mode === 'original' ? extFromBlob(sourceBlob, view.ext) : 'png';
+  if (currentFormat !== 'original') {
+    outBlob = await convertImage(sourceBlob, currentFormat);
+    ext = extForFormat(currentFormat, ext);
+  }
+  if (outBlob.type === 'image/png') outBlob = await addPngMetadata(outBlob, state.username);
+  return { blob: outBlob, filename: getSafeFilename(state.username, view.mode, ext, key) };
+}
 async function handleDownload() {
   const asset = state.assets[state.activeTab];
   if (!asset) return;
@@ -1110,21 +1102,8 @@ async function handleDownload() {
   const originalLabel = downloadBtn.textContent;
   downloadBtn.textContent = t().preparing;
   try {
-    const view = getView(asset);
-    const sourceBlob = await getViewBlob(asset);
-    let outBlob = sourceBlob;
-    /* "Orijinal": Kick'ten gelen baytlar olduğu gibi, gerçek uzantısıyla iner. */
-    let ext = view.mode === 'original' ? extFromBlob(sourceBlob, view.ext) : 'png';
-
-    if (currentFormat !== 'original') {
-      outBlob = await convertImage(sourceBlob, currentFormat);
-      ext = extForFormat(currentFormat, ext);
-    }
-
-    if (outBlob.type === 'image/png') outBlob = await addPngMetadata(outBlob, state.username);
-
-    const finalBlob = new Blob([outBlob], { type: 'application/octet-stream' });
-    await triggerDownload(finalBlob, getSafeFilename(state.username, view.mode, ext, state.activeTab));
+    const { blob, filename } = await exportAsset(state.activeTab);
+    triggerDownload(new Blob([blob], { type: 'application/octet-stream' }), filename);
     toast(t().toastDownloaded);
   } catch {
     toast(t().toastDownloadFailed, 'error');
@@ -1133,6 +1112,130 @@ async function handleDownload() {
     delete downloadBtn.dataset.busy;
     downloadBtn.textContent = originalLabel;
   }
+}
+
+/* ---------- ZIP (store, sıkıştırmasız: görseller zaten sıkışık) ---------- */
+let crcTable = null;
+function crc32(bytes) {
+  if (!crcTable) {
+    crcTable = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+      crcTable[n] = c >>> 0;
+    }
+  }
+  let crc = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) crc = crcTable[(crc ^ bytes[i]) & 0xff] ^ (crc >>> 8);
+  return (crc ^ 0xffffffff) >>> 0;
+}
+async function buildZip(files) {
+  const enc = new TextEncoder();
+  const now = new Date();
+  const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+  const dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  const parts = [], central = [];
+  let offset = 0;
+  for (const f of files) {
+    const data = new Uint8Array(await f.blob.arrayBuffer());
+    const name = enc.encode(f.name);
+    const crc = crc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true);
+    lh.setUint16(8, 0, true); lh.setUint16(10, dosTime, true); lh.setUint16(12, dosDate, true);
+    lh.setUint32(14, crc, true); lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true);
+    lh.setUint16(26, name.length, true); lh.setUint16(28, 0, true);
+    parts.push(new Uint8Array(lh.buffer), name, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true);
+    ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true); ch.setUint16(12, dosTime, true);
+    ch.setUint16(14, dosDate, true); ch.setUint32(16, crc, true); ch.setUint32(20, data.length, true);
+    ch.setUint32(24, data.length, true); ch.setUint16(28, name.length, true); ch.setUint32(42, offset, true);
+    central.push(new Uint8Array(ch.buffer), name);
+    offset += 30 + name.length + data.length;
+  }
+  const centralSize = central.reduce((n, c) => n + c.length, 0);
+  const end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true);
+  end.setUint32(12, centralSize, true); end.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type: 'application/zip' });
+}
+async function handleZip() {
+  const keys = ['avatar', 'banner'].filter((k) => state.assets[k]);
+  if (!keys.length) return;
+  zipBtn.disabled = true;
+  zipBtn.dataset.busy = '1';
+  zipBtn.textContent = t().zipPreparing;
+  try {
+    const files = [];
+    for (const k of keys) {
+      const { blob, filename } = await exportAsset(k);
+      files.push({ name: filename, blob });
+    }
+    const zip = await buildZip(files);
+    triggerDownload(zip, `${getSafeFilename(state.username, 'original', 'zip', '').replace('-original', '')}`);
+    toast(t().toastZip);
+  } catch {
+    toast(t().toastDownloadFailed, 'error');
+  } finally {
+    zipBtn.disabled = false;
+    delete zipBtn.dataset.busy;
+    zipBtn.textContent = t().zipBtn;
+  }
+}
+
+/* ---------- Renk paleti (avatar'dan baskın renkler) ---------- */
+async function extractPalette(blob, count = 5) {
+  const img = await blobToImage(blob);
+  const S = 56;
+  const k = Math.min(1, S / Math.max(img.naturalWidth, img.naturalHeight));
+  const cw = Math.max(1, Math.round(img.naturalWidth * k)), ch = Math.max(1, Math.round(img.naturalHeight * k));
+  const c = document.createElement('canvas');
+  c.width = cw; c.height = ch;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(img, 0, 0, cw, ch);
+  const px = ctx.getImageData(0, 0, cw, ch).data;
+  const buckets = new Map();
+  for (let i = 0; i < px.length; i += 4) {
+    if (px[i + 3] < 128) continue;
+    const key = ((px[i] >> 4) << 8) | ((px[i + 1] >> 4) << 4) | (px[i + 2] >> 4);
+    const b = buckets.get(key) || { n: 0, r: 0, g: 0, b: 0 };
+    b.n++; b.r += px[i]; b.g += px[i + 1]; b.b += px[i + 2];
+    buckets.set(key, b);
+  }
+  const sorted = [...buckets.values()].sort((a, b) => b.n - a.n)
+    .map((b) => [Math.round(b.r / b.n), Math.round(b.g / b.n), Math.round(b.b / b.n)]);
+  const picked = [];
+  for (const col of sorted) {
+    if (picked.every((p) => Math.hypot(p[0] - col[0], p[1] - col[1], p[2] - col[2]) > 52)) picked.push(col);
+    if (picked.length >= count) break;
+  }
+  return picked.map(([r, g, b]) => '#' + [r, g, b].map((v) => v.toString(16).padStart(2, '0')).join(''));
+}
+async function renderPalette() {
+  const key = state.activeTab;
+  const asset = state.assets[key];
+  paletteEl.hidden = true;
+  if (!asset) return;
+  try {
+    if (!asset.palette) asset.palette = await extractPalette(await ensureBlob(asset));
+    if (state.assets[state.activeTab] !== asset || !asset.palette.length) return;
+    paletteEl.innerHTML = '';
+    asset.palette.forEach((hex) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'swatch';
+      b.style.background = hex;
+      b.title = `${hex} — ${t().paletteTitle}`;
+      b.setAttribute('aria-label', b.title);
+      b.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(hex); toast(t().toastColorCopied(hex)); }
+        catch { toast(t().toastCopyFailed, 'error'); }
+      });
+      paletteEl.appendChild(b);
+    });
+    paletteEl.hidden = false;
+  } catch { paletteEl.hidden = true; }
 }
 
 /* ---------- Copy / Share / QR ---------- */
@@ -1208,7 +1311,10 @@ function handleQr() {
 function closeQr() {
   qrModal.classList.remove('open');
   qrModal.addEventListener('transitionend', () => { qrModal.hidden = true; }, { once: true });
+  setTimeout(() => { if (!qrModal.classList.contains('open')) qrModal.hidden = true; }, 450);
 }
+qrImg.addEventListener('error', () => { qrImg.style.visibility = 'hidden'; });
+qrImg.addEventListener('load', () => { qrImg.style.visibility = ''; });
 qrUrl.addEventListener('click', async () => {
   try { await navigator.clipboard.writeText(qrUrl.textContent); toast(t().toastQrCopied); } catch {}
 });
@@ -1237,9 +1343,11 @@ function renderPreview() {
   const currentUrl = view.url;
   previewFrame.classList.remove('loaded');
   previewImg.classList.remove('loaded');
-  previewImg.removeAttribute('srcset');
+  resultCard.setAttribute('data-kind', state.activeTab);
+  if (asset.w && asset.h) previewFrame.style.setProperty('--ar', `${asset.w} / ${asset.h}`);
+  else previewFrame.style.removeProperty('--ar');
+  previewImg.alt = `@${state.username} — ${state.activeTab}`;
   previewImg.src = currentUrl;
-  previewImg.srcset = `${currentUrl} 1x, ${currentUrl} 2x`;
   previewImg.onload = () => {
     previewImg.classList.add('loaded');
     previewFrame.classList.add('loaded');
@@ -1255,6 +1363,7 @@ function renderPreview() {
     });
   }
   renderSpecs();
+  renderPalette();
 }
 async function getOutputMeta(asset) {
   const view = getView(asset);
@@ -1275,6 +1384,7 @@ async function renderSpecs() {
   if (!asset) { resultSpecs.textContent = ''; return; }
   try {
     const meta = await getOutputMeta(asset);
+    if (state.assets[state.activeTab] !== asset) return;
     const parts = [];
     if (meta.w && meta.h) parts.push(`${meta.w} × ${meta.h}px`);
     else parts.push(t().original);
@@ -1282,7 +1392,9 @@ async function renderSpecs() {
     if (meta.size) parts.push(formatBytes(meta.size));
     const html = parts.map(p => `<span>${p}</span>`).join('<span class="sep">·</span>');
     const mode = getView(asset).mode;
-    const badgeText = mode === 'strong' ? t().viewStrong : mode === 'clean' ? t().viewClean : t().viewOriginal;
+    const view = getView(asset);
+    const base = (mode === 'strong' ? t().viewStrong : mode === 'clean' ? t().viewClean : t().viewOriginal).replace(/\s*×\d+/, '');
+    const badgeText = mode === 'original' ? base : `${base} ×${view.scale || (mode === 'strong' ? 4 : 2)}`;
     resultSpecs.innerHTML = html + `<span class="sep">·</span><span class="badge">${badgeText}</span>`;
   } catch {
     resultSpecs.textContent = '';
@@ -1293,6 +1405,8 @@ async function renderSpecs() {
 function openLightbox(src) {
   const overlay = document.createElement('div');
   overlay.className = 'lightbox';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
   const lstage = document.createElement('div');
   lstage.className = 'lb-stage';
   const closeBtn = document.createElement('button');
@@ -1360,6 +1474,7 @@ function openLightbox(src) {
   function close() {
     overlay.classList.remove('open');
     overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+    setTimeout(() => overlay.remove(), 450);
     document.removeEventListener('keydown', onKey);
   }
   function onKey(e) { if (e.key === 'Escape') close(); }
@@ -1402,9 +1517,12 @@ function renderError(type, username) {
 }
 
 /* ---------- Main ---------- */
+let runToken = 0;
 async function run(rawInput) {
   const username = extractUsername(rawInput);
   if (!username) return;
+  const token = ++runToken;
+  const stale = () => token !== runToken;
   lastErrorState = null;
 
   for (let attempt = 0; attempt < 2; attempt++) {
@@ -1422,6 +1540,7 @@ async function run(rawInput) {
         retries: 1, minTimeout: 900,
         shouldRetry: (e) => !(e && e.type === 'notFound'),
       });
+      if (stale()) return;
       const originalPic = data && data.user && data.user.profile_pic;
       if (!originalPic) { renderError('noPic', username); goBtn.disabled = false; return; }
 
@@ -1436,6 +1555,7 @@ async function run(rawInput) {
       updateUrl(resolvedUsername);
 
       const avatarBest = await pickBestVariant(originalPic);
+      if (stale()) return;
       state.assets.avatar = {
         url: avatarBest.url, w: avatarBest.w, h: avatarBest.h,
         isHighest: avatarBest.isHighest, ext: extFromUrl(avatarBest.url),
@@ -1448,20 +1568,24 @@ async function run(rawInput) {
         null;
       if (bannerUrl) {
         const bannerBest = await pickBestVariant(bannerUrl);
+        if (stale()) return;
         state.assets.banner = {
           url: bannerBest.url, w: bannerBest.w, h: bannerBest.h,
           isHighest: bannerBest.isHighest, ext: extFromUrl(bannerBest.url),
           size: null, blob: null, displayMode: 'original', variants: {},
         };
         resultTabs.hidden = false;
+        zipBtn.hidden = false;
       } else {
         state.assets.banner = null;
         resultTabs.hidden = true;
+        zipBtn.hidden = true;
       }
 
       state.activeTab = 'avatar';
       tabAvatar.classList.add('active');
       tabBanner.classList.remove('active');
+      resultCard.setAttribute('data-kind', 'avatar');
 
       resultUsername.textContent = `@${resolvedUsername}`;
       renderChannelMeta();
@@ -1474,6 +1598,7 @@ async function run(rawInput) {
       goBtn.disabled = false;
       return;
     } catch (e) {
+      if (stale()) return;
       const type = (e && e.type) || 'network';
       const retryable = type === 'network' || type === 'rateLimit' || type === 'serverError';
       if (retryable && attempt === 0) { await sleep(1400); continue; }
@@ -1517,7 +1642,7 @@ modeSwitch && modeSwitch.addEventListener('click', async (e) => {
     buttons.forEach((b) => { b.disabled = true; });
     btn.textContent = t().upscaling;
     try {
-      await ensureVariant(asset, nextMode);
+      await ensureVariant(asset, nextMode, (p) => { btn.textContent = `${t().upscaling.replace('…', '')} ${Math.round(p * 100)}%`; });
     } catch {
       toast(t().toastEnhanceFailed, 'error');
       return;
@@ -1545,6 +1670,7 @@ copyImgBtn.addEventListener('click', handleCopyImage);
 copyLinkBtn.addEventListener('click', handleCopyLink);
 shareBtn.addEventListener('click', handleShare);
 qrBtn.addEventListener('click', handleQr);
+zipBtn.addEventListener('click', handleZip);
 
 /* "/" kısayolu: herhangi bir input'a yazmıyorken kullanıcı adı kutusuna odaklan */
 document.addEventListener('keydown', (e) => {
@@ -1565,7 +1691,8 @@ queryInput.addEventListener('paste', (e) => {
 /* ---------- Logo → ana sayfa ---------- */
 $('logo').addEventListener('click', (e) => {
   e.preventDefault();
-  try { history.replaceState(null, '', location.pathname); } catch {}
+  runToken++;
+  updateUrl('');
   queryInput.value = '';
   stage.classList.remove('shown');
   goBtn.disabled = false;
@@ -1586,20 +1713,20 @@ renderHistory();
    varsa otomatik çek. Backward-compatible. */
 (function autoFromUrl() {
   try {
-    let u = null;
-    if (location.hash) {
-      const m = location.hash.match(/^#u=([^&]+)/);
-      if (m) u = decodeURIComponent(m[1]);
-    }
-    if (!u) {
-      const params = new URLSearchParams(location.search);
-      u = params.get('u');
-    }
-    if (u) {
-      queryInput.value = u;
-      run(u);
-    }
+    let u = usernameFromHash();
+    if (!u) u = new URLSearchParams(location.search).get('u');
+    if (u) { queryInput.value = u; run(u); }
   } catch {}
 })();
+/* Sayfa açıkken yeni bir paylaşım linki yapıştırılırsa / geri-ileri yapılırsa */
+window.addEventListener('hashchange', () => {
+  const u = usernameFromHash();
+  if (u && u.toLowerCase() !== (state.username || '').toLowerCase()) { queryInput.value = u; run(u); }
+});
+
+/* PWA: sadece uygulama kabuğu için hafif service worker */
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
 
 })();

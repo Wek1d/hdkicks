@@ -20,6 +20,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # build.js sitemap'teki lastmod'u dosyaların gerçek git geçmişinden alır.
+          # Sığ klonda (varsayılan) bu tarih yanlış çıkar, bu yüzden tam geçmiş şart.
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
