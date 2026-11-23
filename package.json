@@ -20,7 +20,7 @@
   "devDependencies": {
     "csso-cli": "^4.0.2",
     "html-minifier-terser": "^7.2.0",
-    "terser": "^5.51.2"
+    "terser": "^5.51.3"
   },
   "engines": {
     "node": ">=18"
